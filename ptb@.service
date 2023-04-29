@@ -1,0 +1,15 @@
+[Unit]
+Description=Python Telegram Bot
+After=network.target
+
+[Service]
+User=%i
+WorkingDirectory=%h/bot
+EnvironmentFile=%h/bot/env_vars
+
+Environment="PATH=%h/bot/venv/bin"
+ExecStart=%h/bot/venv/bin/python /home/ptb/bot/main.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
