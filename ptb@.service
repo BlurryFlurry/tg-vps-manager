@@ -4,11 +4,11 @@ After=network.target
 
 [Service]
 User=%i
-WorkingDirectory=%h/bot
-EnvironmentFile=%h/bot/env_vars
+WorkingDirectory=/home/%i/bot
+EnvironmentFile=/home/%i/bot/env_vars
 
-Environment="PATH=%h/bot/venv/bin"
-ExecStart=%h/bot/venv/bin/python /home/ptb/bot/main.py
+Environment="PATH=/home/%i/bot/venv/bin"
+ExecStart=/home/%i/bot/venv/bin/python /home/%i/bot/main.py
 Restart=always
 
 [Install]
