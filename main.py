@@ -122,7 +122,7 @@ async def reboot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def grant(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    if user_id == environ.get('grant_perm_id'):  # Replace with the user ID that has permission to grant access
+    if user_id == int(environ.get('grant_perm_id')):  # Replace with the user ID that has permission to grant access
         args = context.args
         full_name = update.effective_user.full_name
         if len(args) == 0:
