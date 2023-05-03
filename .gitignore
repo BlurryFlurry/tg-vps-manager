@@ -1,0 +1,4 @@
+venv/
+.idea/
+tgbot.db
+env_vars
