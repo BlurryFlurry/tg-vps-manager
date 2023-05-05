@@ -1,0 +1,2 @@
+# This is a sub repository of [dropbear_squid_stunnel_nodejs_proxy_badvpn_install](https://github.com/BlurryFlurry/dropbear_squid_stunnel_nodejs_proxy_badvpn_install)
+(You do not need to setup this manually)
