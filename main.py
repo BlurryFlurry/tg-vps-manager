@@ -59,23 +59,26 @@ async def create_user():
     logger.info(f'creating user: {user}')
     if 'expire' in user:
         shell_command = f'/usr/bin/sudo /usr/sbin/useradd -M -s /usr/sbin/nologin -e $(date -d "+{user["expire"]} days" +%Y-%m-%d) "{user["username"]}"'
-        await asyncio.create_subprocess_shell(shell_command)
-        logger.info(shell_command)
+        await shell_exec(shell_command)
     else:
-        await asyncio.create_subprocess_shell(
-            f'/usr/bin/sudo /usr/sbin/useradd -M -s /usr/sbin/nologin "{user["username"]}"')
+        shell_command = f'/usr/bin/sudo /usr/sbin/useradd -M -s /usr/sbin/nologin "{user["username"]}"'
+        await shell_exec(shell_command)
 
     if 'max_logins' in user:
         shell_command = f'echo "{user["username"]} hard maxlogins {user["max_logins"]}" | sudo tee -a /etc/security/limits.conf'
-        await asyncio.create_subprocess_shell(shell_command)
-        logger.info(shell_command)
+        await shell_exec(shell_command)
 
 
 async def change_password():
     logger.info(f'changing password for user: {user}')
     shell_command = f'echo "{user["username"]}:{user["password"]}" | chpasswd'
-    await asyncio.create_subprocess_shell(shell_command)
-    logger.info(shell_command)
+    return await shell_exec(shell_command)
+
+
+async def shell_exec(shell_command):
+    logger.info('executing: ' + shell_command)
+    shell = await asyncio.create_subprocess_shell(shell_command)
+    return await shell.wait()
 
 
 async def user_create_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
