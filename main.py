@@ -93,8 +93,11 @@ async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         user['username'] = context.args[0]
         user['password'] = context.args[1]
-        await change_password(user)
-        await update.message.reply_text('Password has been changed.')
+        if await shell_exec('/usr/bin/id') == 0:
+            await change_password(user)
+            await update.message.reply_text('Password has been changed.')
+        else:
+            await update.message.reply_text('Invalid user')
 
 
 async def user_create_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
