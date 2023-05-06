@@ -72,7 +72,7 @@ async def create_user():
 
 async def change_password(user):
     logger.info(f'changing password for user: {user}')
-    shell_command = f'/usr/bin/yes {user["password"]} | /usr/bin/sudo /usr/sbin/passwd {user["username"]}'
+    shell_command = f'/usr/bin/yes {user["password"]} | /usr/bin/sudo /usr/bin/passwd {user["username"]}'
     return await shell_exec(shell_command)
 
 
