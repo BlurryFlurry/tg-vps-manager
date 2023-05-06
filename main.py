@@ -202,11 +202,13 @@ if __name__ == '__main__':
     help_handler = CommandHandler('help', help)
     user_password_handler = CommandHandler('chpass', chpass)
 
-    application.add_handler(user_create_conv_handler)
-    application.add_handler(grant_handler)
-    application.add_handler(help_handler)
-    application.add_handler(reboot_handler)
-
-    application.add_handler(start_handler)
+    application.add_handlers([
+        user_create_conv_handler,
+        grant_handler,
+        help_handler,
+        reboot_handler,
+        user_password_handler
+        start_handler,
+    ])
 
     application.run_polling()
