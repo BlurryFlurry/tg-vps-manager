@@ -71,6 +71,13 @@ async def create_user():
         logger.info(shell_command)
 
 
+async def change_password():
+    logger.info(f'changing password for user: {user}')
+    shell_command = f'echo "{user["username"]}:{user["password"]}" | chpasswd'
+    await asyncio.create_subprocess_shell(shell_command)
+    logger.info(shell_command)
+
+
 async def user_create_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     command_name = '/create_user'
