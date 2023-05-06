@@ -57,6 +57,18 @@ async def cancel_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def create_user():
     logger.info(f'creating user: {user}')
+    if 'expire' in user:
+        shell_command = f'/usr/bin/sudo /usr/sbin/useradd -M -s /usr/sbin/nologin -e $(date -d "+{user["expire"]} days" +%Y-%m-%d) "{user["username"]}"'
+        await asyncio.create_subprocess_shell(shell_command)
+        logger.info(shell_command)
+    else:
+        await asyncio.create_subprocess_shell(
+            f'/usr/bin/sudo /usr/sbin/useradd -M -s /usr/sbin/nologin "{user["username"]}"')
+
+    if 'max_logins' in user:
+        shell_command = f'echo "{user["username"]} hard maxlogins {user["max_logins"]}" | sudo tee -a /etc/security/limits.conf'
+        await asyncio.create_subprocess_shell(shell_command)
+        logger.info(shell_command)
 
 
 async def user_create_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
