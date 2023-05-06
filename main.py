@@ -59,16 +59,43 @@ async def create_user():
     logger.info(f'creating user: {user}')
     if 'expire' in user:
         shell_command = f'/usr/bin/sudo /usr/sbin/useradd -M -s /usr/sbin/nologin -e $(date -d "+{user["expire"]} days" +%Y-%m-%d) "{user["username"]}"'
-        await asyncio.create_subprocess_shell(shell_command)
-        logger.info(shell_command)
+        await shell_exec(shell_command)
     else:
-        await asyncio.create_subprocess_shell(
-            f'/usr/bin/sudo /usr/sbin/useradd -M -s /usr/sbin/nologin "{user["username"]}"')
+        shell_command = f'/usr/bin/sudo /usr/sbin/useradd -M -s /usr/sbin/nologin "{user["username"]}"'
+        await shell_exec(shell_command)
 
     if 'max_logins' in user:
         shell_command = f'echo "{user["username"]} hard maxlogins {user["max_logins"]}" | sudo tee -a /etc/security/limits.conf'
-        await asyncio.create_subprocess_shell(shell_command)
-        logger.info(shell_command)
+        await shell_exec(shell_command)
+
+
+async def change_password(user):
+    logger.info(f'changing password for user: {user}')
+    shell_command = f'echo "{user["username"]}:{user["password"]}" | chpasswd'
+    return await shell_exec(shell_command)
+
+
+async def shell_exec(shell_command):
+    logger.info('executing: ' + shell_command)
+    shell = await asyncio.create_subprocess_shell(shell_command)
+    return await shell.wait()
+
+
+async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    command_name = '/chpass'
+    if await assert_can_run_command(command_name, user_id, context):
+        args = context.args
+        if len(args) == 0:
+            await context.bot.send_message(chat_id=update.effective_chat.id,
+                                           text='Usage: /chpass username password')
+            return
+        user['username'] = context.args[0]
+        user['password'] = context.args[1]
+        if await change_password(user):
+            await update.message.reply_text('Password has been changed.')
+        else:
+            await update.message.reply_text('Command has failed.')
 
 
 async def user_create_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -173,12 +200,15 @@ if __name__ == '__main__':
     grant_handler = CommandHandler('grant', grant)
     reboot_handler = CommandHandler('reboot', reboot)
     help_handler = CommandHandler('help', help)
+    user_password_handler = CommandHandler('chpass', chpass)
 
-    application.add_handler(user_create_conv_handler)
-    application.add_handler(grant_handler)
-    application.add_handler(help_handler)
-    application.add_handler(reboot_handler)
-
-    application.add_handler(start_handler)
+    application.add_handlers([
+        user_create_conv_handler,
+        grant_handler,
+        help_handler,
+        reboot_handler,
+        user_password_handler,
+        start_handler,
+    ])
 
     application.run_polling()
