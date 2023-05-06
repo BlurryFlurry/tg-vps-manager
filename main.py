@@ -207,7 +207,7 @@ if __name__ == '__main__':
         grant_handler,
         help_handler,
         reboot_handler,
-        user_password_handler
+        user_password_handler,
         start_handler,
     ])
 
