@@ -116,6 +116,9 @@ async def user_create_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def user_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user['username'] = update.message.text
+    if user_exist(user):
+        await update.message.reply_text("User already exists, pick a different username")
+        return USERNAME
     logger.info(f'username sets to {user["username"]}')
     await update.message.reply_text(f'How many days do you want to keep the user: {user.get("username")}?')
     return EXPIRE
