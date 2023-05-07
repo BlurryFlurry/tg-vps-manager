@@ -73,7 +73,7 @@ async def create_user():
 
 async def get_users_list():
     process = await asyncio.create_subprocess_shell(
-        r"/usr/bin/cat /etc/shadow | /usr/bin/grep '^[^:]*:[^\*!]' | /usr/bin/cut -d ':' -f 1| tail -n +2",
+        r"/usr/bin/cat /etc/shadow | /usr/bin/grep '^[^:]*:[^\*!]' | /usr/bin/cut -d ':' -f 1",
         stdout=asyncio.subprocess.PIPE)
     output_bytes, _ = await process.communicate()
 
@@ -130,6 +130,11 @@ async def lsusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     command_name = '/lsusers'
     if await assert_can_run_command(command_name, user_id, context):
         users = await get_users_list()
+        if not users:
+            await update.message.reply_text('No users to display. \n'
+                                            'If you have created password less user, try setting the password with '
+                                            '/chpass command')
+            return
         msg = str()
         for user in users:
             msg += '<code>' + html.escape(user) + '</code>\n'
