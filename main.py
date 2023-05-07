@@ -70,6 +70,9 @@ async def create_user():
         await shell_exec(shell_command)
 
 
+async def user_exist(user):
+    return True if await shell_exec(f'/usr/bin/id {user["username"]}') == 0 else False
+
 async def change_password(user):
     logger.info(f'changing password for user: {user}')
     shell_command = f'/usr/bin/yes {user["password"]} | /usr/bin/sudo /usr/bin/passwd {user["username"]}'
@@ -93,7 +96,7 @@ async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         user['username'] = context.args[0]
         user['password'] = context.args[1]
-        if await shell_exec(f'/usr/bin/id {user["username"]}') == 0:
+        if await user_exist(user):
             await change_password(user)
             await update.message.reply_text('Password has been changed.')
         else:
