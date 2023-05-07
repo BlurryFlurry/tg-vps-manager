@@ -116,7 +116,7 @@ async def user_create_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def user_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user['username'] = update.message.text
-    if user_exist(user):
+    if await user_exist(user):
         await update.message.reply_text("User already exists, pick a different username")
         return USERNAME
     logger.info(f'username sets to {user["username"]}')
