@@ -73,7 +73,7 @@ async def create_user():
 
 async def get_users_list():
     process = await asyncio.create_subprocess_shell(
-        r"/usr/bin/cat /etc/shadow | /usr/bin/grep '^[^:]*:[^\*!]' | /usr/bin/cut -d ':' -f 1",
+        r"/usr/bin/cat /etc/shadow | /usr/bin/grep '^[^:]*:[^\*!]' | /usr/bin/cut -d ':' -f 1| tail -n +2",
         stdout=asyncio.subprocess.PIPE)
     output_bytes, _ = await process.communicate()
 
@@ -123,6 +123,18 @@ async def shell_exec(shell_command):
     logger.info('executing: ' + shell_command)
     process = await asyncio.create_subprocess_shell(shell_command)
     return await process.wait()
+
+
+async def lsusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    command_name = '/lsusers'
+    if await assert_can_run_command(command_name, user_id, context):
+        users = await get_users_list()
+        msg = str()
+        for user in users:
+            msg += '<code>' + html.escape(user) + '</code>\n'
+        logger.info(msg)
+        await update.message.reply_text(msg, parse_mode='HTML')
 
 
 async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -256,6 +268,7 @@ if __name__ == '__main__':
     )
 
     grant_handler = CommandHandler('grant', grant)
+    lsusers_handler = CommandHandler('lsusers', lsusers)
     reboot_handler = CommandHandler('reboot', reboot)
     help_handler = CommandHandler('help', help)
     user_password_handler = CommandHandler('chpass', chpass)
@@ -263,6 +276,7 @@ if __name__ == '__main__':
 
     application.add_handlers([
         user_create_conv_handler,
+        lsusers_handler,
         deluser_handler,
         grant_handler,
         help_handler,
