@@ -14,23 +14,29 @@ LOCAL_REPO_DIR="/home/$ptb_service_user/bot"
 # Go to the local directory
 cd "$LOCAL_REPO_DIR" || exit
 
-
 touch "$HOME"/.config/ptb-service-version.txt
 # Get the latest tag from Github
 LATEST_TAG=$(git ls-remote --tags "https://github.com/$GITHUB_USER/$REPO_NAME.git" | awk '{print $2}' | grep -v '{}' | sort -V | tail -n1 | sed 's|refs/tags/||')
 
 # set new update flag
-if [ ! -f "$HOME/.config/ptb-service-version.txt" ] || [ "$(cat "$HOME"/.config/ptb-service-version.txt)" != "$LATEST_TAG" ]; then
- new_update_flag=" | New update: ${LATEST_TAG}"
-fi
+set_new_update_flag() {
+  if [ ! -f "$HOME/.config/ptb-service-version.txt" ] || [ "$(cat "$HOME"/.config/ptb-service-version.txt)" != "$LATEST_TAG" ]; then
+    new_update_flag=" | New update: ${LATEST_TAG}"
+  else
+    new_update_flag=""
+  fi
+}
 
 start_telegram_bot() {
   if systemctl is-active --quiet ptb@"$ptb_service_user".service; then
     echo "Telegram bot is running, Are you sure you want to stop it? [y/n]"
     read -r choice
     case $choice in
-      y|Y) sudo systemctl stop ptb@"$ptb_service_user".service;;
-      *) echo "Aborted."; return;;
+    y | Y) sudo systemctl stop ptb@"$ptb_service_user".service ;;
+    *)
+      echo "Aborted."
+      return
+      ;;
     esac
   else
     echo "Starting Telegram bot..."
@@ -45,11 +51,11 @@ update_telegram_bot() {
 
     # Pull the latest tag to the local repository
     sudo -u $ptb_service_user git reset --hard
-    sudo -u $ptb_service_user git pull --tags "https://github.com/$GITHUB_USER/$REPO_NAME.git" "$LATEST_TAG"
+    sudo -u $ptb_service_user git pull--tags "https://github.com/$GITHUB_USER/$REPO_NAME.git" "$LATEST_TAG"
     chown $ptb_service_user:$ptb_service_user -R .
 
     # Store the latest tag in a file in the local directory
-    echo "$LATEST_TAG" > "$HOME/.config/ptb-service-version.txt"
+    echo "$LATEST_TAG" >"$HOME/.config/ptb-service-version.txt"
     LATEST_TAG=$(git ls-remote --tags "https://github.com/$GITHUB_USER/$REPO_NAME.git" | awk '{print $2}' | grep -v '{}' | sort -V | tail -n1 | sed 's|refs/tags/||')
     username=$ptb_service_user
     curl -sSL https://raw.githubusercontent.com/BlurryFlurry/dropbear_squid_stunnel_nodejs_proxy_badvpn_install/main/perm_fixer.sh | sh -s -- $username
@@ -57,7 +63,6 @@ update_telegram_bot() {
   fi
 
 }
-
 
 create_ssh_user() {
   read -p "Username: " username
@@ -77,34 +82,35 @@ create_ssh_user() {
   echo "$username:$password" | chpasswd
 
   # Add limit for maximum concurrent SSH sessions
-  echo "$username hard maxlogins $max_sessions" | sudo tee -a /etc/security/limits.conf > /dev/null
+  echo "$username hard maxlogins $max_sessions" | sudo tee -a /etc/security/limits.conf >/dev/null
 }
 
 show_menu() {
 
   while true; do
-  ptb_status=$(systemctl is-active ptb@"$ptb_service_user".service)
-  ptb_action="Start"
-  if [ "$ptb_status" = "active" ]; then
-    ptb_action="Stop"
-  fi
-  clear
-  echo "----------------------------------"
-  echo "              MENU                "
-  echo "----------------------------------"
-  echo "1. $ptb_action Telegram bot"
-  echo "2. Update Telegram bot${new_update_flag}"
-  echo "3. Create SSH User"
-  echo "4. Exit"
-  echo "----------------------------------"
-  echo "Enter a number:"
-  read -r choice
+    set_new_update_flag
+    ptb_status=$(systemctl is-active ptb@"$ptb_service_user".service)
+    ptb_action="Start"
+    if [ "$ptb_status" = "active" ]; then
+      ptb_action="Stop"
+    fi
+    clear
+    echo "----------------------------------"
+    echo "              MENU                "
+    echo "----------------------------------"
+    echo "1. $ptb_action Telegram bot"
+    echo "2. Update Telegram bot${new_update_flag}"
+    echo "3. Create SSH User"
+    echo "4. Exit"
+    echo "----------------------------------"
+    echo "Enter a number:"
+    read -r choice
     case $choice in
-      1) start_telegram_bot;;
-      2) update_telegram_bot;;
-      3) create_ssh_user;;
-      4) break;;
-      *) echo "Invalid option, please choose again.";;
+    1) start_telegram_bot ;;
+    2) update_telegram_bot ;;
+    3) create_ssh_user ;;
+    4) break ;;
+    *) echo "Invalid option, please choose again." ;;
     esac
   done
 }
