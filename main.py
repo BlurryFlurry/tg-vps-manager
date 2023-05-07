@@ -149,7 +149,6 @@ async def user_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def skip_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user['max_logins']: int = 0
-    await update.message.reply_text("max logins sets to unlimited")
     logger.info('max login sets to {:>8} %s' % user['max_logins'])
     msg = await update.message.reply_text("Creating the user.. %s" % user['username'])
     await create_user()
