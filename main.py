@@ -125,6 +125,23 @@ async def shell_exec(shell_command):
     return await process.wait()
 
 
+async def lsusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    command_name = '/lsusers'
+    if await assert_can_run_command(command_name, user_id, context):
+        users = await get_users_list()
+        if not users:
+            await update.message.reply_text('No users to display. \n'
+                                            'If you have created password less user, try setting the password with '
+                                            '/chpass command')
+            return
+        msg = str()
+        for user in users:
+            msg += '<code>' + html.escape(user) + '</code>\n'
+        logger.info(msg)
+        await update.message.reply_text(msg, parse_mode='HTML')
+
+
 async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     command_name = '/chpass'
@@ -256,6 +273,7 @@ if __name__ == '__main__':
     )
 
     grant_handler = CommandHandler('grant', grant)
+    lsusers_handler = CommandHandler('lsusers', lsusers)
     reboot_handler = CommandHandler('reboot', reboot)
     help_handler = CommandHandler('help', help)
     user_password_handler = CommandHandler('chpass', chpass)
@@ -263,6 +281,7 @@ if __name__ == '__main__':
 
     application.add_handlers([
         user_create_conv_handler,
+        lsusers_handler,
         deluser_handler,
         grant_handler,
         help_handler,
