@@ -253,9 +253,11 @@ if __name__ == '__main__':
     reboot_handler = CommandHandler('reboot', reboot)
     help_handler = CommandHandler('help', help)
     user_password_handler = CommandHandler('chpass', chpass)
+    deluser_handler = CommandHandler('deluser', deluser)
 
     application.add_handlers([
         user_create_conv_handler,
+        deluser_handler,
         grant_handler,
         help_handler,
         reboot_handler,
