@@ -46,6 +46,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('<b>Available commands:</b>\n\n'
                                     'type /create_user to create a user account.\n'
                                     'type /chpass to change a user password.\n'
+                                    'type /deluser to delete a user.\n'
                                     'type /reboot to restart the server\n\n' +
                                     '<a href="tg://user?id=5870625310">💠💠💠Coded by Ryan💠💠💠</a>'
                                     '', parse_mode='html')
@@ -71,8 +72,9 @@ async def create_user():
 
 
 async def get_users_list():
-    process = await asyncio.create_subprocess_shell(r"/usr/bin/cat /etc/shadow | /usr/bin/grep '^[^:]*:[^\*!]' | /usr/bin/cut -d ':' -f 1",
-                                                    stdout=asyncio.subprocess.PIPE)
+    process = await asyncio.create_subprocess_shell(
+        r"/usr/bin/cat /etc/shadow | /usr/bin/grep '^[^:]*:[^\*!]' | /usr/bin/cut -d ':' -f 1",
+        stdout=asyncio.subprocess.PIPE)
     output_bytes, _ = await process.communicate()
 
     users = [line.decode() for line in output_bytes.splitlines()[1:]]
@@ -158,21 +160,24 @@ async def user_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("User already exists, pick a different username")
         return USERNAME
     logger.info(f'username sets to {user["username"]}')
-    await update.message.reply_text(f'How many days do you want to keep the user: {user.get("username")}?')
+    await update.message.reply_text(
+        f'How many days do you want to keep the user: {user.get("username")}?' + ' [or /skip]')
     return EXPIRE
 
 
 async def expire(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user['expire'] = update.message.text
     logger.info('user expire sets to {:>8} %s' % user['expire'])
-    await update.message.reply_text('Enter the number of max login sessions for the user: %s' % user['username'])
+    await update.message.reply_text(
+        'Enter the number of max login sessions for the user: %s' % user['username'] + ' [or /skip]')
     return MAX_LOGINS
 
 
 async def skip_expire(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_expire = update.message.text
     logger.info('user expire sets to {:>8} %s' % user_expire)
-    await update.message.reply_text('Enter the number of max login sessions for the user: %s' % user['username'])
+    await update.message.reply_text(
+        'Enter the number of max login sessions for the user: %s' % user['username'] + ' [or /skip]')
     return MAX_LOGINS
 
 
