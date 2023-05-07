@@ -70,8 +70,50 @@ async def create_user():
         await shell_exec(shell_command)
 
 
+async def get_users_list():
+    process = await asyncio.create_subprocess_shell(r"cat /etc/shadow | grep '^[^:]*:[^\*!]' | cut -d ':' -f 1",
+                                                    stdout=asyncio.subprocess.PIPE)
+    output_bytes, _ = await process.communicate()
+
+    users = [line.decode() for line in output_bytes.splitlines()[1:]]
+    return users
+
+
+async def assert_deletable_user(user):
+    if await user_exist(user):
+        if user in await get_users_list():
+            return True
+    else:
+        return False
+
+
+async def user_delete(user):
+    if await user_exist(user):
+        await shell_exec(f'/usr/sbin/userdel -rf {user}')
+    else:
+        return False
+
+
+async def deluser(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    command_name = '/deluser'
+    if await assert_can_run_command(command_name, user_id, context):
+        args = context.args
+        if len(args) == 0:
+            await context.bot.send_message(chat_id=update.effective_chat.id,
+                                           text='Usage: /deluser username')
+            return
+        user['username'] = context.args[0]
+        if await assert_deletable_user(user):
+            await user_delete(user)
+            await update.message.reply_text('User has been deleted.')
+        else:
+            await update.message.reply_text('Invalid user')
+
+
 async def user_exist(user):
     return True if await shell_exec(f'/usr/bin/id {user["username"]}') == 0 else False
+
 
 async def change_password(user):
     logger.info(f'changing password for user: {user}')
