@@ -65,7 +65,7 @@ async def create_user():
         shell_command = f'/usr/bin/sudo /usr/sbin/useradd -M -s /usr/sbin/nologin "{user["username"]}"'
         await shell_exec(shell_command)
 
-    if 'max_logins' in user:
+    if 'max_logins' in user and user['max_logins'] != 0:
         shell_command = f'echo "{user["username"]} hard maxlogins {user["max_logins"]}" | sudo tee -a /etc/security/limits.conf'
         await shell_exec(shell_command)
 
@@ -149,8 +149,11 @@ async def user_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def skip_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user['max_logins']: int = 0
-    await update.message.reply_text("max logins sets to unlimited)")
+    await update.message.reply_text("max logins sets to unlimited")
     logger.info('max login sets to {:>8} %s' % user['max_logins'])
+    msg = await update.message.reply_text("Creating the user.. %s" % user['username'])
+    await create_user()
+    await msg.edit_text(text="The user %s has successfully created" % user['username'])
     return ConversationHandler.END
 
 
