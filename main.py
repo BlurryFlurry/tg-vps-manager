@@ -119,8 +119,8 @@ async def change_password(user):
 
 async def shell_exec(shell_command):
     logger.info('executing: ' + shell_command)
-    shell = await asyncio.create_subprocess_shell(shell_command)
-    return await shell.wait()
+    process = await asyncio.create_subprocess_shell(shell_command)
+    return await process.wait()
 
 
 async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -128,7 +128,7 @@ async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
     command_name = '/chpass'
     if await assert_can_run_command(command_name, user_id, context):
         args = context.args
-        if len(args) == 0:
+        if len(args) != 2:
             await context.bot.send_message(chat_id=update.effective_chat.id,
                                            text='Usage: /chpass username password')
             return
@@ -220,6 +220,9 @@ async def grant(update: Update, context: ContextTypes.DEFAULT_TYPE):
             command_name = args[i]
             target_id = int(args[i + 1])
             can_access = int(args[i + 2])
+            if not command_name[0] == "/":
+                await update.message.reply_text('Invalid command')
+                return False
             c.execute(
                 'INSERT OR REPLACE INTO command_permissions (command_name, user_id, can_access, full_name) VALUES (?, ?, ?, ?)',
                 (command_name, target_id, can_access, full_name))
@@ -237,7 +240,9 @@ if __name__ == '__main__':
 
     user_create_conv_handler = ConversationHandler(
         entry_points=[CommandHandler('create_user', user_create_start)], states={
-            USERNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_username)],
+            USERNAME: [MessageHandler(
+                filters.TEXT & filters.Regex(r'^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\$)$') & ~filters.COMMAND,
+                user_username)],
             EXPIRE: [MessageHandler(filters.Regex('^\d\d?$'), expire), CommandHandler('skip', skip_expire)],
             MAX_LOGINS: [MessageHandler(filters.Regex('^\d$'), user_max_logins),
                          CommandHandler('skip', skip_max_logins)]
