@@ -89,7 +89,7 @@ async def assert_deletable_user(user):
 
 async def user_delete(user):
     if await user_exist(user):
-        await shell_exec(f'/usr/sbin/userdel -rf {user}')
+        await shell_exec(f'/usr/sbin/userdel -rf {user["username"]}')
     else:
         return False
 
