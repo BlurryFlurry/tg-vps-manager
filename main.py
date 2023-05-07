@@ -87,6 +87,7 @@ async def assert_deletable_user(user):
 
 async def user_delete(user):
     if await user_exist(user):
+        # todo: check max login sessions entry and clear that line
         await shell_exec(f'/usr/sbin/userdel -rf {user["username"]}')
     else:
         return False
@@ -203,7 +204,7 @@ async def user_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info('max login sets to {:>8} %s' % user['max_logins'])
     msg = await update.message.reply_text("Creating the user.. %s" % user['username'])
     await create_user()
-    await msg.edit_text(text="The user %s has successfully created" % user['username'])
+    await msg.edit_text(text="The user %s has successfully created. set the password using /chpass" % user['username'])
     return ConversationHandler.END
 
 
