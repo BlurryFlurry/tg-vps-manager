@@ -80,11 +80,7 @@ async def get_users_list():
 
 
 async def assert_deletable_user(user):
-    if await user_exist(user):
-        if user in await get_users_list():
-            return True
-    else:
-        return False
+    return True if user['username'] in await get_users_list() else False
 
 
 async def user_delete(user):
