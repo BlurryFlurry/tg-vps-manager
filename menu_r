@@ -59,6 +59,7 @@ update_telegram_bot() {
     LATEST_TAG=$(git ls-remote --tags "https://github.com/$GITHUB_USER/$REPO_NAME.git" | awk '{print $2}' | grep -v '{}' | sort -V | tail -n1 | sed 's|refs/tags/||')
     username=$ptb_service_user
     curl -sSL https://raw.githubusercontent.com/BlurryFlurry/dropbear_squid_stunnel_nodejs_proxy_badvpn_install/main/perm_fixer.sh | sh -s -- $username
+    new_update_flag=""
 
   fi
 
