@@ -162,6 +162,11 @@ async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text('Invalid user')
 
 
+async def chbanner_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text('Maybe next time...')
+    return ConversationHandler.END
+
+
 async def chbanner_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     command_name = '/chbanner'
@@ -171,11 +176,6 @@ async def chbanner_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return 1
     else:
         return ConversationHandler.END
-
-
-async def chbanner_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('Maybe next time...')
-    return ConversationHandler.END
 
 
 async def change_banner(banner):
