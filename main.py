@@ -74,7 +74,7 @@ async def create_user():
 
 async def get_users_list():
     process = await asyncio.create_subprocess_shell(
-        r"/usr/bin/getent shadow | /usr/bin/grep '^[^:]*:[^\*!]' | /usr/bin/cut -d ':' -f 1",
+        r"/usr/bin/sudo /usr/bin/getent shadow | /usr/bin/grep '^[^:]*:[^\*!]' | /usr/bin/cut -d ':' -f 1",
         stdout=asyncio.subprocess.PIPE)
     output_bytes, _ = await process.communicate()
 
@@ -89,7 +89,7 @@ async def assert_deletable_user(user):
 async def user_delete(user):
     if await user_exist(user):
         # todo: check max login sessions entry and clear that line
-        await shell_exec(f'/usr/sbin/userdel -rf {user["username"]}')
+        await shell_exec(f'/usr/bin/sudo /usr/sbin/userdel -rf {user["username"]}')
     else:
         return False
 
@@ -304,7 +304,7 @@ if __name__ == '__main__':
     )
 
     chbanner_conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('chbanner', chbanner)], states={
+        entry_points=[CommandHandler('chbanner', chbanner_start)], states={
             1: [MessageHandler(
                 filters.TEXT, chbanner
             )]
@@ -320,6 +320,7 @@ if __name__ == '__main__':
 
     application.add_handlers([
         user_create_conv_handler,
+        chbanner_conv_handler,
         lsusers_handler,
         deluser_handler,
         grant_handler,
