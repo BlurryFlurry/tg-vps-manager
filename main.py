@@ -44,12 +44,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('<b>Available commands:</b>\n\n'
-                                    'type /create_user to create a user account.\n'
-                                    'type /chpass to change a user password.\n'
-                                    'type /deluser to delete a user.\n'
-                                    'type /lsusers to list users.\n'
-                                    'type /chbanner to update SSH banner\n\n' +
-                                    'type /reboot to restart the server\n\n' +
+                                    '/create_user - create a user account.\n'
+                                    '/chpass - change a user password.\n'
+                                    '/deluser - delete a user.\n'
+                                    '/lsusers - list users.\n'
+                                    '/chbanner - update SSH banner\n\n' +
+                                    '/reboot - restart the server\n\n' +
                                     '<a href="tg://user?id=5870625310">💠💠💠Coded by Ryan💠💠💠</a>'
                                     '', parse_mode='html')
 
