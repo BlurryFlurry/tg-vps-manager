@@ -179,7 +179,7 @@ async def chbanner_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def change_banner(banner):
-    with open('/etc/dropbear/banner.dat') as f:
+    with open('/etc/dropbear/banner.dat', 'w') as f:
         f.write(banner)
 
 
