@@ -51,6 +51,8 @@ update_telegram_bot() {
 
     # Pull the latest tag to the local repository
     sudo -u $ptb_service_user git reset --hard origin/main && git clean -f -d
+    sudo -u $ptb_service_user git checkout main -f
+    sudo -u $ptb_service_user git reset --hard origin/main && git clean -f -d
     sudo -u $ptb_service_user git pull--tags "https://github.com/$GITHUB_USER/$REPO_NAME.git" "$LATEST_TAG"
     chown $ptb_service_user:$ptb_service_user -R .
 
