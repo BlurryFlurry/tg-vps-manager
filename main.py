@@ -48,7 +48,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                     'type /chpass to change a user password.\n'
                                     'type /deluser to delete a user.\n'
                                     'type /lsusers to list users.\n'
-                                    'type /chbanner to change SSH banner\n\n' +
+                                    'type /chbanner to update SSH banner\n\n' +
                                     'type /reboot to restart the server\n\n' +
                                     '<a href="tg://user?id=5870625310">💠💠💠Coded by Ryan💠💠💠</a>'
                                     '', parse_mode='html')
