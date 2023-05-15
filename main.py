@@ -311,7 +311,7 @@ if __name__ == '__main__':
                 filters.TEXT & ~filters.COMMAND,
                 chbanner)]
 
-        }, fallbacks=[CommandHandler('cancel', cancel_user)]
+        }, fallbacks=[CommandHandler('cancel', chbanner_cancel)]
     )
 
     grant_handler = CommandHandler('grant', grant)
