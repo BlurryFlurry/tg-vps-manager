@@ -179,7 +179,8 @@ async def chbanner_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def change_banner(banner):
-    return await shell_exec(f"echo {html.escape(banner)} >/etc/dropbear/banner.dat")
+    with open('/etc/dropbear/banner.dat') as f:
+        f.write(banner)
 
 
 async def chbanner(update: Update, context: ContextTypes.DEFAULT_TYPE):
