@@ -162,6 +162,35 @@ async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text('Invalid user')
 
 
+async def chbanner_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    command_name = '/chbanner'
+
+    if await assert_can_run_command(command_name, user_id, context):
+        await update.message.reply_text('Paste the SSH banner HTML code and send (or /cancel)')
+        return 1
+    else:
+        return ConversationHandler.END
+
+
+async def chbanner_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text('Maybe next time...')
+    return ConversationHandler.END
+
+
+async def change_banner(banner):
+    return await shell_exec(f"echo {html.escape(banner)} >/etc/dropbear/banner.dat")
+
+
+async def chbanner(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = await update.message.reply_text('Updating banner..')
+    banner = update.message.text
+    logger.info('changing SSH banner:' + banner)
+    await change_banner(banner)
+    await msg.edit_text('SSH banner has been successfully updated.')
+    return ConversationHandler.END
+
+
 async def user_create_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     command_name = '/create_user'
@@ -272,6 +301,14 @@ if __name__ == '__main__':
                          CommandHandler('skip', skip_max_logins)]
 
         }, fallbacks=[CommandHandler('cancel', cancel_user)]
+    )
+
+    chbanner_conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('chbanner', chbanner)], states={
+            1: [MessageHandler(
+                filters.TEXT, chbanner
+            )]
+        }, fallbacks=[CommandHandler('cancel', chbanner_cancel)]
     )
 
     grant_handler = CommandHandler('grant', grant)
