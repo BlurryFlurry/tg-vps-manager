@@ -48,6 +48,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                     'type /chpass to change a user password.\n'
                                     'type /deluser to delete a user.\n'
                                     'type /lsusers to list users.\n'
+                                    'type /chbanner to change SSH banner\n\n' +
                                     'type /reboot to restart the server\n\n' +
                                     '<a href="tg://user?id=5870625310">💠💠💠Coded by Ryan💠💠💠</a>'
                                     '', parse_mode='html')
@@ -74,7 +75,7 @@ async def create_user():
 
 async def get_users_list():
     process = await asyncio.create_subprocess_shell(
-        r"/usr/bin/getent shadow | /usr/bin/grep '^[^:]*:[^\*!]' | /usr/bin/cut -d ':' -f 1",
+        r"/usr/bin/sudo /usr/bin/getent shadow | /usr/bin/grep '^[^:]*:[^\*!]' | /usr/bin/cut -d ':' -f 1",
         stdout=asyncio.subprocess.PIPE)
     output_bytes, _ = await process.communicate()
 
@@ -89,7 +90,7 @@ async def assert_deletable_user(user):
 async def user_delete(user):
     if await user_exist(user):
         # todo: check max login sessions entry and clear that line
-        await shell_exec(f'/usr/sbin/userdel -rf {user["username"]}')
+        await shell_exec(f'/usr/bin/sudo /usr/sbin/userdel -rf {user["username"]}')
     else:
         return False
 
@@ -160,6 +161,37 @@ async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text('Password has been changed.')
         else:
             await update.message.reply_text('Invalid user')
+
+
+async def chbanner_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text('Maybe next time...')
+    return ConversationHandler.END
+
+
+async def chbanner_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    command_name = '/chbanner'
+
+    if await assert_can_run_command(command_name, user_id, context):
+        await update.message.reply_text('Paste the SSH banner HTML code and send (or /cancel)')
+        return 1
+    else:
+        return ConversationHandler.END
+
+
+async def change_banner(banner):
+    with open('/etc/dropbear/banner.dat', 'w') as f:
+        f.write(banner)
+    await shell_exec('/usr/bin/sudo /usr/bin/systemctl restart dropbear.service')
+
+
+async def chbanner(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = await update.message.reply_text('Updating banner..')
+    banner = update.message.text
+    logger.info('changing SSH banner:' + banner)
+    await change_banner(banner)
+    await msg.edit_text('SSH banner has been successfully updated.')
+    return ConversationHandler.END
 
 
 async def user_create_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -274,6 +306,15 @@ if __name__ == '__main__':
         }, fallbacks=[CommandHandler('cancel', cancel_user)]
     )
 
+    chbanner_conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('chbanner', chbanner_start)], states={
+            1: [MessageHandler(
+                filters.TEXT & ~filters.COMMAND,
+                chbanner)]
+
+        }, fallbacks=[CommandHandler('cancel', chbanner_cancel)]
+    )
+
     grant_handler = CommandHandler('grant', grant)
     lsusers_handler = CommandHandler('lsusers', lsusers)
     reboot_handler = CommandHandler('reboot', reboot)
@@ -283,6 +324,7 @@ if __name__ == '__main__':
 
     application.add_handlers([
         user_create_conv_handler,
+        chbanner_conv_handler,
         lsusers_handler,
         deluser_handler,
         grant_handler,
