@@ -308,9 +308,10 @@ if __name__ == '__main__':
     chbanner_conv_handler = ConversationHandler(
         entry_points=[CommandHandler('chbanner', chbanner_start)], states={
             1: [MessageHandler(
-                filters.TEXT, chbanner
-            )]
-        }, fallbacks=[CommandHandler('cancel', chbanner_cancel)]
+                filters.TEXT & ~filters.COMMAND,
+                chbanner)]
+
+        }, fallbacks=[CommandHandler('cancel', cancel_user)]
     )
 
     grant_handler = CommandHandler('grant', grant)
