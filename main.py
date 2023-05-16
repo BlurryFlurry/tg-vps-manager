@@ -5,6 +5,7 @@ import sqlite3
 from datetime import datetime
 import html
 from os import environ
+from datetime import datetime
 
 conn = sqlite3.connect('tgbot.db')
 c = conn.cursor()
@@ -145,6 +146,21 @@ async def lsusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(msg, parse_mode='HTML')
 
 
+async def get_user_expiry_date(username):
+    process = await asyncio.create_subprocess_shell(
+        '/usr/bin/sudo /usr/bin/chage -l' + username + ''' | grep "Account expires" | cut -d ':' -f 2 | xargs''',
+        stdout=asyncio.subprocess.PIPE)
+    expiry = process.communicate()
+    return expiry
+
+
+async def get_user_create_date(username):
+    process = await asyncio.create_subprocess_shell('/usr/bin/sudo /usr/bin/passwd ' + username + ' | awk "{print $3}"',
+                                                    stdout=asyncio.subprocess.PIPE)
+    creation_date = await process.communicate()
+    return creation_date
+
+
 async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     command_name = '/chpass'
@@ -159,6 +175,25 @@ async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if await user_exist(user):
             await change_password(user)
             await update.message.reply_text('Password has been changed.')
+
+            created_time = await shell_exec('/usr/bin/sudo /usr/bin/passwd ' + user['username'] + ' | awk "{print $3}"')
+            expiry_date = await get_user_expiry_date(user['username'])
+
+            await context.bot.send_message(f'''
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+              ⇱ SSH Account settings
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Host  :sg.naylavpn.my.id
+Username: {user['username']}
+Password: {user['password']}
+Created : {created_time}
+Expired : {expiry_date}
+Port    : 443 or 22
+Squid   : 3128
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                SSH UDP BY CyberVPN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            ''', chat_id=user_id, parse_mode='HTML')
         else:
             await update.message.reply_text('Invalid user')
 
@@ -237,7 +272,9 @@ async def user_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info('max login sets to {:>8} %s' % user['max_logins'])
     msg = await update.message.reply_text("Creating the user.. %s" % user['username'])
     await create_user()
-    await msg.edit_text(text="The user %s has successfully created. set the password using /chpass" % user['username'])
+    await msg.edit_text(
+        text=f"The user <code>{user['username']}</code> has successfully created. set the password using <code>/chpass {user['username']}[</code>",
+        parse_mode='HTML')
     return ConversationHandler.END
 
 
