@@ -77,7 +77,7 @@ async def create_user():
 
 async def get_users_list():
     process = await asyncio.create_subprocess_shell(
-        r"/usr/bin/getent shadow | /usr/bin/grep '^[^:]*:[^\*!]' | /usr/bin/cut -d ':' -f 1",
+        r"/usr/bin/sudo /usr/bin/getent shadow | /usr/bin/grep '^[^:]*:[^\*!]' | /usr/bin/cut -d ':' -f 1",
         stdout=asyncio.subprocess.PIPE)
     output_bytes, _ = await process.communicate()
 
