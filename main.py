@@ -2,7 +2,8 @@
 import asyncio
 import logging
 import sqlite3
-from datetime import datetime
+import random
+import string
 import html
 from os import environ
 from datetime import datetime
@@ -63,7 +64,7 @@ async def cancel_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def create_user():
     logger.info(f'creating user: {user}')
     if 'expire' in user:
-        shell_command = f'/usr/bin/sudo /usr/sbin/useradd -M -s /usr/sbin/nologin -e $(date -d "+{user["expire"]} days" +%Y-%m-%d) "{user["username"]}"'
+        shell_command = f'/usr/bin/sudo /usr/sbin/useradd -M -s /usr/sbin/nologin -e $(/usr/bin/date -d "+{user["expire"]} days" +%Y-%m-%d) "{user["username"]}"'
         await shell_exec(shell_command)
     else:
         shell_command = f'/usr/bin/sudo /usr/sbin/useradd -M -s /usr/sbin/nologin "{user["username"]}"'
@@ -147,18 +148,32 @@ async def lsusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def get_user_expiry_date(username):
-    process = await asyncio.create_subprocess_shell(
-        '/usr/bin/sudo /usr/bin/chage -l' + username + ''' | grep "Account expires" | cut -d ':' -f 2 | xargs''',
-        stdout=asyncio.subprocess.PIPE)
-    expiry = process.communicate()
+    command = f'''/usr/bin/sudo /usr/bin/chage -l {username} | /usr/bin/grep "Account expires" | /usr/bin/cut -d ':' -f 2'''
+    logger.info(command)
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
+    data = await process.stdout.read()
+    expiry = data.decode('ascii').strip()
+    await process.wait()
+
     return expiry
 
 
 async def get_user_create_date(username):
-    process = await asyncio.create_subprocess_shell('/usr/bin/sudo /usr/bin/passwd ' + username + ' | awk "{print $3}"',
+    command = '/usr/bin/sudo /usr/bin/passwd -S ' + username + " | /usr/bin/awk '{print $3}'"
+    logger.info(command)
+    process = await asyncio.create_subprocess_shell(command,
                                                     stdout=asyncio.subprocess.PIPE)
-    creation_date = await process.communicate()
+    data = await process.stdout.readline()
+    creation_date = data.decode('ascii').rstrip()
+    await process.wait()
     return creation_date
+
+
+async def get_public_ip():
+    command = '/usr/bin/wget -qO- ifconfig.me | /usr/bin/xargs /usr/bin/echo'
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
+    stdout, stderr = await process.communicate()
+    return stdout.decode('ascii').strip()
 
 
 async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -176,24 +191,28 @@ async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await change_password(user)
             await update.message.reply_text('Password has been changed.')
 
-            created_time = await shell_exec('/usr/bin/sudo /usr/bin/passwd ' + user['username'] + ' | awk "{print $3}"')
+            created_time = await get_user_create_date(user['username'])
             expiry_date = await get_user_expiry_date(user['username'])
+            hostname = await get_public_ip()
+            logger.info('created: ' + str(created_time))
+            logger.info('expiry: ' + str(expiry_date))
 
-            await context.bot.send_message(f'''
-            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-              ⇱ SSH Account settings
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Host  :sg.naylavpn.my.id
-Username: {user['username']}
-Password: {user['password']}
-Created : {created_time}
-Expired : {expiry_date}
-Port    : 443 or 22
-Squid   : 3128
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                SSH UDP BY CyberVPN
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            ''', chat_id=user_id, parse_mode='HTML')
+            await context.bot.send_message(text=f'''
+<pre>
+   ☇ New SSH account settings
+☰☰☰☰☰☰☰✦✦✦✦✦✦✦☰☰☰☰☰☰☰☰☰
+➬ Host:    ❋ ➫ {hostname}
+➬ Username ❋ ➫ {user['username']}
+➬ Password ❋ ➫ {user['password']}
+➬ Expiry   ❋ ➫ {expiry_date}
+➬ Created  ❋ ➫ {created_time}
+☰☰☰☰☰☰☰✦✦✦✦✦✦✦☰☰☰☰☰☰☰☰☰
+ Port      ❋ ➫ 22 / 443
+ Badvpn    ❋ ➫ 7300
+☰☰☰☰☰☰☰✦✦✦✦✦✦✦☰☰☰☰☰☰☰☰☰
+</pre>
+                                            <a href="https://github.com/BlurryFlurry/dig-my-tunnel">❬/❭</a> ''',
+                                           chat_id=user_id, parse_mode='HTML', disable_web_page_preview=True)
         else:
             await update.message.reply_text('Invalid user')
 
@@ -272,8 +291,9 @@ async def user_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info('max login sets to {:>8} %s' % user['max_logins'])
     msg = await update.message.reply_text("Creating the user.. %s" % user['username'])
     await create_user()
+    pw_template = await get_random_password()
     await msg.edit_text(
-        text=f"The user <code>{user['username']}</code> has successfully created. set the password using <code>/chpass {user['username']}[</code>",
+        text=f"The user <code>{user['username']}</code> has successfully created. set the password using <code>/chpass {user['username']} {pw_template}</code>",
         parse_mode='HTML')
     return ConversationHandler.END
 
@@ -283,8 +303,19 @@ async def skip_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info('max login sets to {:>8} %s' % user['max_logins'])
     msg = await update.message.reply_text("Creating the user.. %s" % user['username'])
     await create_user()
-    await msg.edit_text(text="The user %s has successfully created" % user['username'])
+
+    # get random password pf length 8 with letters, digits, and symbols
+    pw_template = await get_random_password()
+    await msg.edit_text(
+        text=f"The user <code>{user['username']}</code> has successfully created. set the password using <code>/chpass {user['username']} {pw_template}</code>",
+        parse_mode='HTML')
     return ConversationHandler.END
+
+
+async def get_random_password():
+    characters = string.ascii_letters + string.digits + string.punctuation
+    pw_template = ''.join(random.choice(characters) for i in range(8))
+    return pw_template
 
 
 async def reboot(update: Update, context: ContextTypes.DEFAULT_TYPE):
