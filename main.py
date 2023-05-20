@@ -202,19 +202,23 @@ async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             await context.bot.send_message(text=f'''
 <pre>
-   ☇ New SSH account settings
-☰☰☰☰☰☰☰✦✦✦✦✦✦✦☰☰☰☰☰☰☰☰☰
+―――⋞ New SSH account settings ⋟―――
+☰☰☰☰☰☰✦✦✦✦✦✦☰☰☰☰☰☰☰
+
+⁅≔――――――――――――≍―――――――――――――≔⁆
 ➬ Host:    ❋ ➫ {hostname}
+⁅≔――――――――――――≍―――――――――――――≔⁆
 ➬ Username ❋ ➫ {user['username']}
 ➬ Password ❋ ➫ {user['password']}
+⁅≔――――――――――――≍―――――――――――――≔⁆
 ➬ Expiry   ❋ ➫ {expiry_date}
 ➬ Created  ❋ ➫ {created_time}
-☰☰☰☰☰☰☰✦✦✦✦✦✦✦☰☰☰☰☰☰☰☰☰
+⁅≔――――――――――――≍―――――――――――――≔⁆
  Port      ❋ ➫ 22 / 443
  Badvpn    ❋ ➫ 7300
-☰☰☰☰☰☰☰✦✦✦✦✦✦✦☰☰☰☰☰☰☰☰☰
+⁅≔――――――――――――≍―――――――――――――≔⁆
 </pre>
-                                            <a href="https://github.com/BlurryFlurry/dig-my-tunnel">❬/❭</a> ''',
+                                                            <a href="https://github.com/BlurryFlurry/dig-my-tunnel">❬../❭</a> ''',
                                            chat_id=user_id, parse_mode='HTML', disable_web_page_preview=True)
         else:
             await update.message.reply_text('Invalid user')
