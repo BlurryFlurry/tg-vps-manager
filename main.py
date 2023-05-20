@@ -153,8 +153,6 @@ async def get_user_expiry_date(username):
     process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
     stdout, stderr = await process.communicate()
     expiry = stdout.decode('ascii').strip()
-    await process.wait()
-
     return expiry
 
 
@@ -163,9 +161,8 @@ async def get_user_create_date(username):
     logger.info(command)
     process = await asyncio.create_subprocess_shell(command,
                                                     stdout=asyncio.subprocess.PIPE)
-    data = await process.stdout.readline()
-    creation_date = data.decode('ascii').rstrip()
-    await process.wait()
+    stdout, stderr = await process.communicate()
+    creation_date = stdout.decode('ascii').rstrip()
     return creation_date
 
 
