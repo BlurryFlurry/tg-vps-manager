@@ -121,9 +121,6 @@ async def user_exist(user):
 
 async def change_password(user):
     logger.info(f'changing password for user: {user}')
-    # env = os.environ.copy()
-    # env['usrpw'] = user['password']
-    # shell_command = '/usr/bin/yes ${usrpw@Q} | /usr/bin/sudo /usr/bin/passwd %s' % user["username"]
     shell_command = '/usr/bin/sudo /usr/bin/passwd %s' % user["username"]
     process = await asyncio.create_subprocess_shell(shell_command, stdin=asyncio.subprocess.PIPE)
     inp = user['password'] + "\n" + user['password'] + "\n"
