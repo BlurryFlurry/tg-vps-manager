@@ -319,6 +319,14 @@ async def skip_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
+async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    command_name = '/server_stats'
+    if await assert_can_run_command(command_name, user_id, context):
+        pass
+
+
 async def get_random_password():
     characters = string.ascii_letters + string.digits + string.punctuation
     pw_template = ''.join(random.choice(characters) for i in range(8))
@@ -396,10 +404,12 @@ if __name__ == '__main__':
     help_handler = CommandHandler('help', help)
     user_password_handler = CommandHandler('chpass', chpass)
     deluser_handler = CommandHandler('deluser', deluser)
+    server_stats_handler = CommandHandler('server_stats', server_stats)
 
     application.add_handlers([
         user_create_conv_handler,
         chbanner_conv_handler,
+        server_stats_handler,
         lsusers_handler,
         deluser_handler,
         grant_handler,
