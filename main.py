@@ -121,8 +121,14 @@ async def user_exist(user):
 
 async def change_password(user):
     logger.info(f'changing password for user: {user}')
-    shell_command = f'/usr/bin/yes {user["password"]} | /usr/bin/sudo /usr/bin/passwd {user["username"]}'
-    return await shell_exec(shell_command)
+    # env = os.environ.copy()
+    # env['usrpw'] = user['password']
+    # shell_command = '/usr/bin/yes ${usrpw@Q} | /usr/bin/sudo /usr/bin/passwd %s' % user["username"]
+    shell_command = '/usr/bin/sudo /usr/bin/passwd %s' % user["username"]
+    process = await asyncio.create_subprocess_shell(shell_command, stdin=asyncio.subprocess.PIPE)
+    inp = user['password'] + "\n" + user['password'] + "\n"
+    inp = inp.encode()
+    _ = await process.communicate(input=inp)
 
 async def shell_exec(shell_command, **kwargs):
     logger.info('executing: ' + shell_command)
@@ -151,8 +157,10 @@ async def get_user_expiry_date(username):
     command = f'''/usr/bin/sudo /usr/bin/chage -l {username} | /usr/bin/grep "Account expires" | /usr/bin/cut -d ':' -f 2'''
     logger.info(command)
     process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
-    stdout, stderr = await process.communicate()
-    expiry = stdout.decode('ascii').strip()
+    data = await process.stdout.read()
+    expiry = data.decode('ascii').strip()
+    await process.wait()
+
     return expiry
 
 
