@@ -151,8 +151,8 @@ async def get_user_expiry_date(username):
     command = f'''/usr/bin/sudo /usr/bin/chage -l {username} | /usr/bin/grep "Account expires" | /usr/bin/cut -d ':' -f 2'''
     logger.info(command)
     process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
-    data = await process.stdout.read()
-    expiry = data.decode('ascii').strip()
+    stdout, stderr = await process.communicate()
+    expiry = stdout.decode('ascii').strip()
     await process.wait()
 
     return expiry
