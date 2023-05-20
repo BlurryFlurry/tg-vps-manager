@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import asyncio
 import logging
+import os
 import sqlite3
 import random
 import string
@@ -123,10 +124,9 @@ async def change_password(user):
     shell_command = f'/usr/bin/yes {user["password"]} | /usr/bin/sudo /usr/bin/passwd {user["username"]}'
     return await shell_exec(shell_command)
 
-
-async def shell_exec(shell_command):
+async def shell_exec(shell_command, **kwargs):
     logger.info('executing: ' + shell_command)
-    process = await asyncio.create_subprocess_shell(shell_command)
+    process = await asyncio.create_subprocess_shell(shell_command,  **kwargs)
     return await process.wait()
 
 
@@ -161,15 +161,16 @@ async def get_user_create_date(username):
     logger.info(command)
     process = await asyncio.create_subprocess_shell(command,
                                                     stdout=asyncio.subprocess.PIPE)
-    stdout, stderr = await process.communicate()
-    creation_date = stdout.decode('ascii').rstrip()
+    data = await process.stdout.readline()
+    creation_date = data.decode('ascii').rstrip()
+    await process.wait()
     return creation_date
 
 
 async def get_public_ip():
     command = '/usr/bin/wget -qO- ifconfig.me | /usr/bin/xargs /usr/bin/echo'
     process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
-    stdout, stderr = await process.communicate()
+    stdout, _ = await process.communicate()
     return stdout.decode('ascii').strip()
 
 
