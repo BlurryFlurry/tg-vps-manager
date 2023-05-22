@@ -338,13 +338,13 @@ async def shell_exec_stdout(command, oneline=False):
 
 async def get_service_processes():
     processes = await shell_exec_stdout(
-        """/usr/bin/sudo /usr/bin/ss -ntlp | /usr/bin/awk '!/Peer/ {sub("users:", "", $6); print 'port' $4 '|' $6 }'""")
+        """/usr/bin/sudo /usr/bin/ss -ntlp | /usr/bin/awk '!/Peer/ {sub("users:", "", $6); print "Port: " $4 "|" $6 }'""")
     return processes
+
 
 async def get_server_load():
     # todo: find serverload and return
     return 'sample server load'
-
 
 
 async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
