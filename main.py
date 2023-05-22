@@ -359,7 +359,7 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
             service_processes += html.escape(line) + '\n'
         server_load = await get_server_load()
         uptime = await shell_exec_stdout('/usr/bin/uptime --pretty', True)
-        server_ip = get_public_ip()
+        server_ip = await get_public_ip()
         await context.bot.send_message(text=f'''
         <pre>
         ―――⋞ Server statistics ⋟―――
@@ -367,7 +367,19 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         ⁅≔――――――――――――≍―――――――――――――≔⁆
         ➬ Server IP:    ❋ ➫ {server_ip}
-    
+        ➬ {uptime}
+        ➬ Server Load   ❋ ➫ {server_load}
+        ⁅≔――――――――――――≍―――――――――――――≔⁆
+        
+        ⁅≔――――――――――――≍―――――――――――――≔⁆
+                    Ports      
+         Dropbear   ❋ ➫ 22
+         SSH        ❋ ➫ 22
+         Badvpn     ❋ ➫ 7300
+        ⁅≔――――――――――――≍―――――――――――――≔⁆
+                Service processes      
+         {service_processes}
+        ⁅≔――――――――――――≍―――――――――――――≔⁆
         
         </pre>
                                                                     <a href="https://github.com/BlurryFlurry/dig-my-tunnel">❬../❭</a> ''',
