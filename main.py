@@ -38,7 +38,8 @@ async def assert_can_run_command(command_name: str, user_id: int, context: Conte
         return True
     else:
         await context.bot.send_message(chat_id=user_id, text='You do not have permission to run this command.')
-        await context.bot.send_message(chat_id=user_id, text='''This can happen for a variety of reasons. I am a part of the script named "Dig-my-tunnel" (github.comBlurryFlurry/dig-my-tunnel), which allows server owners to administer their servers using a simple telegram bot like me. \n If you know who owns the server that I manage, he must provide you access to perform the command. And if you don't know who that person is, I apologize; you may be conversing with a private bot controlled by someone. In this circumstance, I am unable to assist you.''')
+        await context.bot.send_message(chat_id=user_id,
+                                       text='''This can happen for a variety of reasons. I am a part of the script named "Dig-my-tunnel" (github.comBlurryFlurry/dig-my-tunnel), which allows server owners to administer their servers using a simple telegram bot like me. \n If you know who owns the server that I manage, he must provide you access to perform the command. And if you don't know who that person is, I apologize; you may be conversing with a private bot controlled by someone. In this circumstance, I am unable to assist you.''')
 
         return False
 
@@ -325,7 +326,13 @@ async def skip_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-async def shell_exec_stdout(command, oneline=False):
+async def shell_exec_stdout(command: str, oneline: bool = False) -> list | str:
+    """
+
+    :param command: command to execute
+    :param oneline: True if oneline
+    :return:
+    """
     logger.info("Running: " + command)
 
     process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
@@ -386,8 +393,11 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    command_name = '/reboot'
+    command_name = '/vnstat'
     if await assert_can_run_command(command_name, user_id, context):
+        stats = await shell_exec_stdout('/usr/bin/sudo /usr/bin/vmstat')
+        await update.message.reply_text(stats)
+
 
 
 async def get_random_password():
