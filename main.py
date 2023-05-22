@@ -3,6 +3,7 @@ import asyncio
 import html
 import logging
 import random
+import re
 import sqlite3
 import string
 from datetime import datetime
@@ -270,6 +271,9 @@ async def user_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user['username'] = update.message.text
     if await user_exist(user):
         await update.message.reply_text("User already exists, pick a different username")
+        return USERNAME
+    elif not re.match(r'^[a-z_][a-z0-9_-]{0,31}$', user['username']):
+        await update.message.reply_text("Invalid username, pick a different username")
         return USERNAME
     logger.info(f'username sets to {user["username"]}')
     await update.message.reply_text(
