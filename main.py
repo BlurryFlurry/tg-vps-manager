@@ -376,7 +376,8 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
  SSH        ❋ ➫ 22
  Badvpn     ❋ ➫ 7300
 ⁅≔――――――――――――≍―――――――――――――≔⁆
-        Service processes      
+        Service processes
+        
 {service_processes}
 ⁅≔――――――――――――≍―――――――――――――≔⁆
 
