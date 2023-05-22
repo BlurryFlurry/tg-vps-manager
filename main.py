@@ -363,23 +363,7 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(text=f'''
         <pre>
         ―――⋞ Server statistics ⋟―――
-        ☰☰☰☰☰☰✦✦✦✦✦✦☰☰☰☰☰☰☰
 
-        ⁅≔――――――――――――≍―――――――――――――≔⁆
-        ➬ Server IP:    ❋ ➫ {server_ip}
-        ➬ {uptime}
-        ➬ Server Load   ❋ ➫ {server_load}
-        ⁅≔――――――――――――≍―――――――――――――≔⁆
-        
-        ⁅≔――――――――――――≍―――――――――――――≔⁆
-                    Ports      
-         Dropbear   ❋ ➫ 22
-         SSH        ❋ ➫ 22
-         Badvpn     ❋ ➫ 7300
-        ⁅≔――――――――――――≍―――――――――――――≔⁆
-                Service processes      
-         
-        ⁅≔――――――――――――≍―――――――――――――≔⁆
         
         </pre>
                                                                     <a href="https://github.com/BlurryFlurry/dig-my-tunnel">❬../❭</a> ''',
