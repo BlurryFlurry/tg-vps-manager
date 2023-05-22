@@ -2,3 +2,4 @@ venv/
 .idea/
 tgbot.db
 env_vars
+python-sudo-debug
