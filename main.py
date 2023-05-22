@@ -338,7 +338,7 @@ async def shell_exec_stdout(command, oneline=False):
 
 async def get_service_processes():
     processes = await shell_exec_stdout(
-        """/usr/bin/sudo /usr/bin/ss -ntlp | /usr/bin/awk '!/Peer/ {split($4, a, ":"); sub("users:", "", $6); gsub("\\)\\)" print "Port: " a[length(a)] "|" $6 }'""")
+        """/usr/bin/sudo /usr/bin/ss -ntlp | /usr/bin/awk '!/Peer/ {split($4, a, ":"); sub("users:", "", $6); gsub("\\)\\)"; print "Port: " a[length(a)] "|" $6 }'""")
     return processes
 
 
