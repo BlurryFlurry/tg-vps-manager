@@ -3,10 +3,12 @@ import asyncio
 import html
 import logging
 import random
+import re
 import sqlite3
 import string
 from datetime import datetime
 from os import environ
+from typing import Union
 
 conn = sqlite3.connect('tgbot.db')
 c = conn.cursor()
@@ -37,6 +39,9 @@ async def assert_can_run_command(command_name: str, user_id: int, context: Conte
         return True
     else:
         await context.bot.send_message(chat_id=user_id, text='You do not have permission to run this command.')
+        await context.bot.send_message(chat_id=user_id,
+                                       text='''This can happen for a variety of reasons. I am a part of the script named "Dig-my-tunnel" (github.comBlurryFlurry/dig-my-tunnel), which allows server owners to administer their servers using a simple telegram bot like me. \n If you know who owns the server that I manage, he must provide you access to perform the command. And if you don't know who that person is, I apologize; you may be conversing with a private bot controlled by someone. In this circumstance, I am unable to assist you.''')
+
         return False
 
 
@@ -271,6 +276,9 @@ async def user_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await user_exist(user):
         await update.message.reply_text("User already exists, pick a different username")
         return USERNAME
+    elif not re.match(r'^[a-z_][a-z0-9_-]{0,31}$', user['username']):
+        await update.message.reply_text("Invalid username, pick a different username")
+        return USERNAME
     logger.info(f'username sets to {user["username"]}')
     await update.message.reply_text(
         f'How many days do you want to keep the user: {user.get("username")}?' + ' [or /skip]')
@@ -319,7 +327,13 @@ async def skip_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-async def shell_exec_stdout(command, oneline=False):
+async def shell_exec_stdout(command: str, oneline: bool = False) -> Union[list, str]:
+    """
+
+    :param command: command to execute
+    :param oneline: True if oneline
+    :return:
+    """
     logger.info("Running: " + command)
 
     process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
@@ -340,8 +354,6 @@ async def get_service_processes():
     processes = await shell_exec_stdout(
         """/usr/bin/sudo /usr/bin/ss -ntlp | /usr/bin/awk '!/Peer/ {split($4, a, ":"); sub("users:", "", $6); gsub(",", " | ", $6); gsub("\\)\\)", "", $6); gsub("\\\(\\\(", "", $6); print "Port:" a[length(a)] " | " $6 }'""")
     return processes
-
-
 
 
 async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -371,13 +383,21 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
  Badvpn     ❋ ➫ 7300
 ⁅≔――――――――――――≍―――――――――――――≔⁆
         Service processes
-        
+
 {service_processes}
 ⁅≔――――――――――――≍―――――――――――――≔⁆
 
 </pre>
                                                                     <a href="https://github.com/BlurryFlurry/dig-my-tunnel">❬../❭</a> ''',
                                        chat_id=user_id, parse_mode='HTML', disable_web_page_preview=True)
+
+
+async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    command_name = '/vnstat'
+    if await assert_can_run_command(command_name, user_id, context):
+        stats = await shell_exec_stdout('/usr/bin/sudo /usr/bin/vnstat')
+        await update.message.reply_text(stats)
 
 
 async def get_random_password():
@@ -458,11 +478,13 @@ if __name__ == '__main__':
     user_password_handler = CommandHandler('chpass', chpass)
     deluser_handler = CommandHandler('deluser', deluser)
     server_stats_handler = CommandHandler('server_stats', server_stats)
+    vnstat_handler = CommandHandler('vnstat', vnstat)
 
     application.add_handlers([
         user_create_conv_handler,
         chbanner_conv_handler,
         server_stats_handler,
+        vnstat_handler,
         lsusers_handler,
         deluser_handler,
         grant_handler,
