@@ -8,6 +8,7 @@ import sqlite3
 import string
 from datetime import datetime
 from os import environ
+from typing import Union
 
 conn = sqlite3.connect('tgbot.db')
 c = conn.cursor()
@@ -326,7 +327,7 @@ async def skip_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-async def shell_exec_stdout(command: str, oneline: bool = False) -> list | str:
+async def shell_exec_stdout(command: str, oneline: bool = False) -> Union[list, str]:
     """
 
     :param command: command to execute
@@ -397,7 +398,6 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await assert_can_run_command(command_name, user_id, context):
         stats = await shell_exec_stdout('/usr/bin/sudo /usr/bin/vmstat')
         await update.message.reply_text(stats)
-
 
 
 async def get_random_password():
