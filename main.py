@@ -378,7 +378,7 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
          Badvpn     ❋ ➫ 7300
         ⁅≔――――――――――――≍―――――――――――――≔⁆
                 Service processes      
-         {service_processes}
+         
         ⁅≔――――――――――――≍―――――――――――――≔⁆
         
         </pre>
