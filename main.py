@@ -397,7 +397,7 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     command_name = '/vnstat'
     if await assert_can_run_command(command_name, user_id, context):
         stats = await shell_exec_stdout('/usr/bin/sudo /usr/bin/vnstat')
-        await update.message.reply_text(stats)
+        await update.message.reply_text('<pre>' + stats + '</pre>')
 
 
 async def get_random_password():
