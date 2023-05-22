@@ -342,9 +342,6 @@ async def get_service_processes():
     return processes
 
 
-async def get_server_load():
-    server_load = await shell_exec_stdout("/usr/bin/uptime | /usr/bin//awk -F: '{ print $5 }'", True)
-    return server_load
 
 
 async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -356,7 +353,7 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         service_processes = str()
         for line in service_processes_list:
             service_processes += html.escape(line) + '\n'
-        server_load = await get_server_load()
+        server_load = await shell_exec_stdout("/usr/bin/uptime | /usr/bin//awk -F: '{ print $5 }'", True)
         uptime = await shell_exec_stdout('/usr/bin/uptime --pretty', True)
         server_ip = await get_public_ip()
         await context.bot.send_message(text=f'''
