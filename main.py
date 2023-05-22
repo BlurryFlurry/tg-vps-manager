@@ -38,6 +38,8 @@ async def assert_can_run_command(command_name: str, user_id: int, context: Conte
         return True
     else:
         await context.bot.send_message(chat_id=user_id, text='You do not have permission to run this command.')
+        await context.bot.send_message(chat_id=user_id, text='''This can happen for a variety of reasons. I am a part of the script named "Dig-my-tunnel" (github.comBlurryFlurry/dig-my-tunnel), which allows server owners to administer their servers using a simple telegram bot like me. \n If you know who owns the server that I manage, he must provide you access to perform the command. And if you don't know who that person is, I apologize; you may be conversing with a private bot controlled by someone. In this circumstance, I am unable to assist you.''')
+
         return False
 
 
@@ -382,6 +384,12 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                        chat_id=user_id, parse_mode='HTML', disable_web_page_preview=True)
 
 
+async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    command_name = '/reboot'
+    if await assert_can_run_command(command_name, user_id, context):
+
+
 async def get_random_password():
     characters = string.ascii_letters + string.digits + string.punctuation
     pw_template = ''.join(random.choice(characters) for i in range(8))
@@ -460,11 +468,13 @@ if __name__ == '__main__':
     user_password_handler = CommandHandler('chpass', chpass)
     deluser_handler = CommandHandler('deluser', deluser)
     server_stats_handler = CommandHandler('server_stats', server_stats)
+    vnstat_handler = CommandHandler('vnstat', vnstat)
 
     application.add_handlers([
         user_create_conv_handler,
         chbanner_conv_handler,
         server_stats_handler,
+        vnstat_handler,
         lsusers_handler,
         deluser_handler,
         grant_handler,
