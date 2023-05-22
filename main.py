@@ -338,14 +338,8 @@ async def shell_exec_stdout(command, oneline=False):
 
 async def get_service_processes():
     processes = await shell_exec_stdout(
-        """/usr/bin/ss -ntlp | /usr/bin/awk '!/Peer/ {sub("users:", "", $6); gsub("\\(\\(", "", $6); gsub("\\)\\)", "", $6); split($4, a, ":"); print "Port: " a[length(a)]  " | Process: " $6 }'""")
+        """/usr/bin/sudo /usr/bin/ss -ntlp | /usr/bin/awk '!/Peer/ {split($4, a, ":"); sub("users:", "", $6); gsub(",", " | ", $6); gsub("\\)\\)", "", $6); gsub("\\\(\\\(", "", $6); print "Port:" a[length(a)] " | " $6 }'""")
     return processes
-
-
-async def get_server_load():
-    # todo: find serverload and return
-    return 'sample server load'
-
 
 
 async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -357,31 +351,29 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         service_processes = str()
         for line in service_processes_list:
             service_processes += html.escape(line) + '\n'
-        server_load = await get_server_load()
+        server_load = await shell_exec_stdout("/usr/bin/uptime | /usr/bin//awk -F: '{ print $5 }'", True)
         uptime = await shell_exec_stdout('/usr/bin/uptime --pretty', True)
-        server_ip = get_public_ip()
+        server_ip = await get_public_ip()
         await context.bot.send_message(text=f'''
         <pre>
-        ―――⋞ Server statistics ⋟―――
-        ☰☰☰☰☰☰✦✦✦✦✦✦☰☰☰☰☰☰☰
+―――⋞ Server statistics ⋟―――
 
-        ⁅≔――――――――――――≍―――――――――――――≔⁆
-        ➬ Server IP:    ❋ ➫ {server_ip}
-        ➬ {uptime}
-        ➬ Server Load   ❋ ➫ {server_load}
-        ⁅≔――――――――――――≍―――――――――――――≔⁆
-        
-        ⁅≔――――――――――――≍―――――――――――――≔⁆
-                    Ports      
-         Dropbear   ❋ ➫ 22
-         SSH        ❋ ➫ 22
-         Badvpn     ❋ ➫ 7300
-        ⁅≔――――――――――――≍―――――――――――――≔⁆
-                Service processes      
-         {service_processes}
-        ⁅≔――――――――――――≍―――――――――――――≔⁆
-        
-        </pre>
+⁅≔――――――――――――≍―――――――――――――≔⁆
+➬ Server IP   ❋ ➫ {server_ip}
+➬ Server Load ❋ ➫ {server_load}
+➬ {uptime}
+⁅≔――――――――――――≍―――――――――――――≔⁆
+            Ports      
+ Dropbear   ❋ ➫ 22
+ SSH        ❋ ➫ 22
+ Badvpn     ❋ ➫ 7300
+⁅≔――――――――――――≍―――――――――――――≔⁆
+        Service processes
+
+{service_processes}
+⁅≔――――――――――――≍―――――――――――――≔⁆
+
+</pre>
                                                                     <a href="https://github.com/BlurryFlurry/dig-my-tunnel">❬../❭</a> ''',
                                        chat_id=user_id, parse_mode='HTML', disable_web_page_preview=True)
 
