@@ -366,8 +366,6 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ➬ Server Load ❋ ➫ {server_load}
 ➬ {uptime}
 ⁅≔――――――――――――≍―――――――――――――≔⁆
-
-⁅≔――――――――――――≍―――――――――――――≔⁆
             Ports      
  Dropbear   ❋ ➫ 22
  SSH        ❋ ➫ 22
