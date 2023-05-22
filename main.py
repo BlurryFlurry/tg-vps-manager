@@ -343,8 +343,8 @@ async def get_service_processes():
 
 
 async def get_server_load():
-    # todo: find serverload and return
-    return 'sample server load'
+    server_load = await shell_exec_stdout("uptime | awk -F: '{ print $5 }'", 'True')
+    return server_load
 
 
 async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
