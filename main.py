@@ -396,7 +396,7 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     command_name = '/vnstat'
     if await assert_can_run_command(command_name, user_id, context):
-        stats = await shell_exec_stdout('/usr/bin/sudo /usr/bin/vmstat')
+        stats = await shell_exec_stdout('/usr/bin/sudo /usr/bin/vnstat')
         await update.message.reply_text(stats)
 
 
