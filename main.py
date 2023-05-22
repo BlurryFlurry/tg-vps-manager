@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 import asyncio
-import logging
-import os
-import sqlite3
-import random
-import string
 import html
-from os import environ
+import logging
+import random
+import sqlite3
+import string
 from datetime import datetime
+from os import environ
 
 conn = sqlite3.connect('tgbot.db')
 c = conn.cursor()
@@ -127,9 +126,10 @@ async def change_password(user):
     inp = inp.encode()
     _ = await process.communicate(input=inp)
 
+
 async def shell_exec(shell_command, **kwargs):
     logger.info('executing: ' + shell_command)
-    process = await asyncio.create_subprocess_shell(shell_command,  **kwargs)
+    process = await asyncio.create_subprocess_shell(shell_command, **kwargs)
     return await process.wait()
 
 
@@ -319,12 +319,71 @@ async def skip_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
+async def shell_exec_stdout(command, oneline=False):
+    logger.info("Running: " + command)
+
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
+
+    if oneline:
+        data = await process.stdout.readline()
+        line = data.decode('ascii').strip()
+        await process.wait()
+        return line
+
+    output_bytes, _ = await process.communicate()
+
+    lines_decoded = [line.decode() for line in output_bytes.splitlines()]
+    return lines_decoded
+
+
+async def get_service_processes():
+    processes = await shell_exec_stdout(
+        """/usr/bin/ss -ntlp | /usr/bin/awk '!/Peer/ {sub("users:", "", $6); gsub("\\(\\(", "", $6); gsub("\\)\\)", "", $6); split($4, a, ":"); print "Port: " a[length(a)]  " | Process: " $6 }'""")
+    return processes
+
+
+async def get_server_load():
+    # todo: find serverload and return
+    return 'sample server load'
+
+
+
 async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
     command_name = '/server_stats'
     if await assert_can_run_command(command_name, user_id, context):
-        pass
+        service_processes_list = await get_service_processes()
+        service_processes = str()
+        for line in service_processes_list:
+            service_processes += html.escape(line) + '\n'
+        server_load = await get_server_load()
+        uptime = await shell_exec_stdout('/usr/bin/uptime --pretty', True)
+        server_ip = get_public_ip()
+        await context.bot.send_message(text=f'''
+        <pre>
+        ―――⋞ Server statistics ⋟―――
+        ☰☰☰☰☰☰✦✦✦✦✦✦☰☰☰☰☰☰☰
+
+        ⁅≔――――――――――――≍―――――――――――――≔⁆
+        ➬ Server IP:    ❋ ➫ {server_ip}
+        ➬ {uptime}
+        ➬ Server Load   ❋ ➫ {server_load}
+        ⁅≔――――――――――――≍―――――――――――――≔⁆
+        
+        ⁅≔――――――――――――≍―――――――――――――≔⁆
+                    Ports      
+         Dropbear   ❋ ➫ 22
+         SSH        ❋ ➫ 22
+         Badvpn     ❋ ➫ 7300
+        ⁅≔――――――――――――≍―――――――――――――≔⁆
+                Service processes      
+         {service_processes}
+        ⁅≔――――――――――――≍―――――――――――――≔⁆
+        
+        </pre>
+                                                                    <a href="https://github.com/BlurryFlurry/dig-my-tunnel">❬../❭</a> ''',
+                                       chat_id=user_id, parse_mode='HTML', disable_web_page_preview=True)
 
 
 async def get_random_password():
