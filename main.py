@@ -338,7 +338,7 @@ async def shell_exec_stdout(command, oneline=False):
 
 async def get_service_processes():
     processes = await shell_exec_stdout(
-        """/usr/bin/ss -ntlp | /usr/bin/awk '!/Peer/ print $6 }'""")
+        """/usr/bin/ss -ntlp | /usr/bin/awk '!/Peer/ { print $6 }'""")
     return processes
 
 async def get_server_load():
