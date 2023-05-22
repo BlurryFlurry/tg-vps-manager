@@ -359,7 +359,6 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(text=f'''
         <pre>
 ―――⋞ Server statistics ⋟―――
-☰☰☰☰☰☰✦✦✦✦✦✦☰☰☰☰☰☰☰
 
 ⁅≔――――――――――――≍―――――――――――――≔⁆
 ➬ Server IP   ❋ ➫ {server_ip}
