@@ -365,9 +365,9 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ☰☰☰☰☰☰✦✦✦✦✦✦☰☰☰☰☰☰☰
 
 ⁅≔――――――――――――≍―――――――――――――≔⁆
-➬ Server IP:    ❋ ➫ {server_ip}
+➬ Server IP   ❋ ➫ {server_ip}
+➬ Server Load ❋ ➫ {server_load}
 ➬ {uptime}
-➬ Server Load   ❋ ➫ {server_load}
 ⁅≔――――――――――――≍―――――――――――――≔⁆
 
 ⁅≔――――――――――――≍―――――――――――――≔⁆
