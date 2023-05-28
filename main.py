@@ -426,6 +426,7 @@ def format_daily_bandwidth_usage(usage):
     try:
         data = json.loads(usage)
     except json.JSONDecodeError:
+        logger.info(usage)
         return "Error: Failed to retrieve bandwidth usage data."
 
     interface = data['interfaces'][0]
