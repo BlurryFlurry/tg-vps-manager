@@ -397,7 +397,7 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # function to get hourly bandwidth usage
 async def get_hourly_bandwidth():
-    command = '/usr/bin/vnstat -i wlp2s0 --json h'
+    command = '/usr/bin/vnstat --json h'
     process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
                                                     stderr=asyncio.subprocess.PIPE)
     stdout, _ = await process.communicate()
@@ -406,7 +406,7 @@ async def get_hourly_bandwidth():
 
 # function to get daily bandwidth usage
 async def get_daily_bandwidth():
-    command = '/usr/bin/vnstat -i wlp2s0 --json d'
+    command = '/usr/bin/vnstat --json d'
     process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
                                                     stderr=asyncio.subprocess.PIPE)
     stdout, _ = await process.communicate()
