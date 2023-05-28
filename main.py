@@ -413,6 +413,50 @@ async def get_daily_bandwidth():
     return stdout.decode().strip()
 
 
+async def get_monthly_bandwidth():
+    """
+    Function to get monthly bandwidth usage
+    :return:
+    """
+    command = '/usr/bin/vnstat --json m'
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.PIPE)
+    stdout, _ = await process.communicate()
+    return stdout.decode().strip()
+
+
+# function to format monthly bandwidth usage
+def format_monthly_bandwidth_usage(usage):
+    try:
+        data = json.loads(usage)
+    except json.JSONDecodeError:
+        return "Error: Failed to retrieve monthly bandwidth usage data."
+
+    interfaces = data['interfaces']
+    output = []
+
+    for interface in interfaces:
+        output.append(f"Interface: {interface['name']}")
+        output.append("------------------------")
+
+        traffic = interface.get('traffic', {}).get('month', [])
+
+        for month in traffic:
+            year = month['date']['year']
+            month_number = month['date']['month']
+            received = month['rx']
+            sent = month['tx']
+            total = received + sent
+
+            output.append(f"Month: {year}-{month_number}")
+            output.append(f"Received: {sizeof_fmt(received)}")
+            output.append(f"Sent: {sizeof_fmt(sent)}")
+            output.append(f"Total: {sizeof_fmt(total)}")
+            output.append("------------------------")
+
+    return "\n".join(output)
+
+
 def sizeof_fmt(num, suffix="B"):
     for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
         if abs(num) < 1024.0:
@@ -499,6 +543,11 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if args[0].lower() == 'daily':
             bandwidth_usage = await get_daily_bandwidth()
             formatted_output = format_daily_bandwidth_usage(bandwidth_usage)
+            await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
+            return
+        if args[0].lower() == 'monthly':
+            bandwidth_usage = await get_monthly_bandwidth()
+            formatted_output = format_monthly_bandwidth_usage(bandwidth_usage)
             await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
             return
 
