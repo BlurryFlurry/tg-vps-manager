@@ -494,7 +494,7 @@ async def format_recent_5_minutes_bandwidth_usage(usage):
 
 
 # function to format hourly bandwidth usage
-def format_hourly_bandwidth_usage(usage):
+def format_hourly_bandwidth_usage(usage, max_length=4096):
     try:
         data = json.loads(usage)
     except json.JSONDecodeError:
@@ -526,7 +526,25 @@ def format_hourly_bandwidth_usage(usage):
             output.append(f"Total: {sizeof_fmt(total)}")
             output.append("------------------------")
 
-    return "\n".join(output)
+    if len(output) > max_length:
+        output = output[:max_length]  # Trim the output to the maximum length
+        output += "\n[...]\n"  # Add an ellipsis to indicate that the message is truncated
+
+    messages = []
+    while output:
+        if len(output) <= max_length:
+            messages.append(output)
+            break
+        else:
+            # Find the last newline character within the maximum length
+            last_newline_index = output[:max_length].rfind('\n')
+            if last_newline_index == -1:
+                # If no newline found, split at the maximum length
+                last_newline_index = max_length
+            messages.append(output[:last_newline_index].strip())
+            output = output[last_newline_index:].strip()
+
+    return messages
 
 
 # function to get top bandwidth usage
@@ -663,8 +681,9 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         if args[0].lower() == 'hourly':
             bandwidth_usage = await get_hourly_bandwidth()
-            formatted_output = format_hourly_bandwidth_usage(bandwidth_usage)
-            await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
+            formatted_output_messages = format_hourly_bandwidth_usage(bandwidth_usage)
+            for formatted_output_message in formatted_output_messages:
+                await update.message.reply_text('<pre>' + "\n".join(formatted_output_message) + '</pre>', parse_mode='html')
             return
         if args[0].lower() == 'top':
             bandwidth_usage = await get_top_bandwidth()
