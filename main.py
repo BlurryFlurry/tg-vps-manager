@@ -502,6 +502,45 @@ def format_hourly_bandwidth_usage(usage):
     return "\n".join(output)
 
 
+# function to get top bandwidth usage
+async def get_top_bandwidth():
+    command = '/usr/bin/vnstat --top --json'
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.PIPE)
+    stdout, _ = await process.communicate()
+    return stdout.decode().strip()
+
+
+# function to format  top bandwidth usage
+def format_top_bandwidth_usage(usage):
+    try:
+        data = json.loads(usage)
+    except json.JSONDecodeError:
+        return "Error: Failed to retrieve hourly bandwidth usage data."
+    interfaces = data['interfaces']
+    message = ""
+
+    for interface in interfaces:
+        name = interface['name']
+        traffic = interface['traffic']
+        days = traffic['day']
+
+        message += f"Top Traffic Days - {name}\n"
+        for day in days:
+            date = day['date']
+            rx = day['rx']
+            tx = day['tx']
+            formatted_date = f"{date['year']}-{date['month']}-{date['day']}"
+            formatted_rx = sizeof_fmt(rx)
+            formatted_tx = sizeof_fmt(tx)
+
+            message += f"Date: {formatted_date}\n"
+            message += f"Download: {formatted_rx}\n"
+            message += f"Upload: {formatted_tx}\n\n"
+
+    return message
+
+
 def sizeof_fmt(num, suffix="B"):
     for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
         if abs(num) < 1024.0:
@@ -598,6 +637,11 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if args[0].lower() == 'hourly':
             bandwidth_usage = await get_hourly_bandwidth()
             formatted_output = format_hourly_bandwidth_usage(bandwidth_usage)
+            await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
+            return
+        if args[0].lower() == 'top':
+            bandwidth_usage = await get_top_bandwidth()
+            formatted_output = format_top_bandwidth_usage(bandwidth_usage)
             await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
             return
 
