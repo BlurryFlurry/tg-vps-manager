@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 ptb_service_user=$(cat "$HOME"/.config/ptb-service-user)
+release=$1
+if [ -z "$1" ]
+  then
+    release=$(cat /home/"$ptb_service_user"/bot/release-id.txt)
+fi
+
 # Set Github repository details
 GITHUB_USER="BlurryFlurry"
 
@@ -16,3 +22,13 @@ sudo -u $ptb_service_user git checkout main -f
 sudo -u $ptb_service_user git reset --hard origin/main && git clean -f -d
 sudo -u $ptb_service_user git pull --tags "https://github.com/$GITHUB_USER/$REPO_NAME.git" "$LATEST_TAG"
 chown $ptb_service_user:$ptb_service_user -R .
+
+# install vnstat if release ID is greater than 26
+if [ "$release" -gt 26 ]
+then
+    echo "Installing vnstat"
+    sudo apt-get install -y vnstat
+    sudo systemctl enable vnstat
+    sudo systemctl start vnstat
+    echo "vnstat installed"
+fi

@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 import asyncio
 import html
+import json
 import logging
 import random
 import re
 import sqlite3
 import string
 from datetime import datetime
+from logging import Logger
 from os import environ
 from typing import Union
 
@@ -17,14 +19,15 @@ c.execute('''CREATE TABLE IF NOT EXISTS command_permissions
 
 conn.commit()
 
-from telegram import Update
-from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHandler, ContextTypes, ConversationHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHandler, ContextTypes, ConversationHandler, \
+    CallbackQueryHandler
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
-logger = logging.getLogger(__name__)
+logger: Logger = logging.getLogger(__name__)
 log_file = '/var/log/ptb.log'
 
 USERNAME, EXPIRE, MAX_LOGINS = range(3)
@@ -334,7 +337,7 @@ async def shell_exec_stdout(command: str, oneline: bool = False) -> Union[list, 
     :param oneline: True if oneline
     :return:
     """
-    logger.info("Running: " + command)
+    logger.info("Running: %s", command)
 
     process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
 
@@ -392,12 +395,111 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                        chat_id=user_id, parse_mode='HTML', disable_web_page_preview=True)
 
 
+# function to get hourly bandwidth usage
+async def get_hourly_bandwidth():
+    command = '/usr/bin/vnstat -i wlp2s0 --json h'
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.PIPE)
+    stdout, _ = await process.communicate()
+    return stdout.decode().strip()
+
+
+# function to get daily bandwidth usage
+async def get_daily_bandwidth():
+    command = '/usr/bin/vnstat -i wlp2s0 --json d'
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.PIPE)
+    stdout, _ = await process.communicate()
+    return stdout.decode().strip()
+
+
+def sizeof_fmt(num, suffix="B"):
+    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
+        if abs(num) < 1024.0:
+            return f"{num:3.1f}{unit}{suffix}"
+        num /= 1024.0
+    return f"{num:.1f}Yi{suffix}"
+
+
+# function to format daily bandwidth usage
+def format_daily_bandwidth_usage(usage):
+    try:
+        data = json.loads(usage)
+    except json.JSONDecodeError:
+        return "Error: Failed to retrieve bandwidth usage data."
+
+    interface = data['interfaces'][0]
+    output = [f"Interface: {interface['name']}", "------------------------"]
+
+    traffic = interface.get('traffic', {}).get('day', [])
+
+    for day in traffic:
+        date = f"{day['date']['year']}-{day['date']['month']}-{day['date']['day']}"
+        received = day['rx']
+        sent = day['tx']
+        total = received + sent
+
+        output.append(f"Date: {date}")
+        output.append(f"Received: {sizeof_fmt(received)}")
+        output.append(f"Sent: {sizeof_fmt(sent)}")
+        output.append(f"Total: {sizeof_fmt(total)}")
+        output.append("------------------------")
+
+    return "\n".join(output)
+
+
+async def get_available_interfaces():
+    """function to get available interfaces"""
+    command = '/usr/bin/vnstat --iflist'
+    output = await shell_exec_stdout(command, True)
+    # Parse the output to extract interface names
+    if output.startswith("Available interfaces:"):
+        interfaces = output.split(":")[1].strip().split()
+        return interfaces
+    return []
+
+
+async def vnstat_cfg(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    command_name = '/vnstat_cfg'
+    if await assert_can_run_command(command_name, user_id, context):
+        interfaces = await get_available_interfaces()
+        keyboard = [[InlineKeyboardButton(interface, callback_data=interface)] for interface in interfaces]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text('Select a network interface:', reply_markup=reply_markup)
+        return
+
+
+# function to handle callback query vnstat_save
+async def vnstat_add_interface(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    command_name = '/vnstat_cfg'
+    if await assert_can_run_command(command_name, user_id, context):
+        query = update.callback_query
+        await query.answer()
+        interface = query.data
+        await query.edit_message_text(text=f'Adding interface: {interface}')
+        command = f'/usr/bin/vnstat --add -i {interface}'
+        await shell_exec(command)
+        await query.edit_message_text(text=f'Interface: {interface} added')
+        return
+
+
 async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global formatted_output
     user_id = update.effective_user.id
     command_name = '/vnstat'
     if await assert_can_run_command(command_name, user_id, context):
-        stats = await shell_exec_stdout('/usr/bin/sudo /usr/bin/vnstat')
-        await update.message.reply_text('<pre>' + stats + '</pre>')
+        args = context.args
+        if not len(args) == 1:
+            await context.bot.send_message(chat_id=update.effective_chat.id,
+                                           text='Usage: /vnstat arg [daily | monthly | hourly | top | live]')
+            return
+        if args[0].lower() == 'daily':
+            bandwidth_usage = await get_daily_bandwidth()
+            formatted_output = format_daily_bandwidth_usage(bandwidth_usage)
+            await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
+            return
 
 
 async def get_random_password():
@@ -470,6 +572,8 @@ if __name__ == '__main__':
 
         }, fallbacks=[CommandHandler('cancel', chbanner_cancel)]
     )
+    vnstat_cfg_handler = CommandHandler('vnstat_cfg', vnstat_cfg)
+    vnstat_cfg_add_interface_handler = CallbackQueryHandler(vnstat_add_interface)
 
     grant_handler = CommandHandler('grant', grant)
     lsusers_handler = CommandHandler('lsusers', lsusers)
@@ -483,6 +587,8 @@ if __name__ == '__main__':
     application.add_handlers([
         user_create_conv_handler,
         chbanner_conv_handler,
+        vnstat_cfg_handler,
+        vnstat_cfg_add_interface_handler,
         server_stats_handler,
         vnstat_handler,
         lsusers_handler,
