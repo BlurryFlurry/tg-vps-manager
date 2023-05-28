@@ -457,6 +457,42 @@ def format_monthly_bandwidth_usage(usage):
     return "\n".join(output)
 
 
+# function to get recent 5 minutes bandwidth usage
+async def get_recent_5_minutes_bandwidth():
+    command = '/usr/bin/vnstat -5 --json'
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.PIPE)
+    stdout, _ = await process.communicate()
+    return stdout.decode().strip()
+
+
+# function to format recent 5 minutes bandwidth usage
+async def format_recent_5_minutes_bandwidth_usage(usage):
+    data = json.loads(usage)
+    interfaces = data["interfaces"]
+    message = ""
+
+    for interface in interfaces:
+        interface_name = interface["name"]
+        fiveminute = interface["traffic"]["fiveminute"]
+
+        message += f"Interface: {interface_name}\n"
+        message += "Recent 5 minutes' bandwidth usage:\n"
+
+        for entry in fiveminute:
+            timestamp = entry["timestamp"]
+            rx = entry["rx"]
+            tx = entry["tx"]
+            time_str = f"{timestamp // 3600:02d}:{(timestamp % 3600) // 60:02d}"
+            bandwidth_str = f"RX: {sizeof_fmt(rx)} bytes, TX: {sizeof_fmt(tx)} bytes"
+
+            message += f"{time_str} - {bandwidth_str}\n"
+
+        message += "\n"
+
+    return message
+
+
 # function to get hourly bandwidth usage
 async def get_hourly_bandwidth():
     command = '/usr/bin/vnstat --json h'
@@ -622,7 +658,7 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         args = context.args
         if not len(args) == 1:
             await context.bot.send_message(chat_id=update.effective_chat.id,
-                                           text='Usage: /vnstat arg [daily | monthly | hourly | top | live]')
+                                           text='Usage: /vnstat arg [daily | monthly | hourly | top | 5m ]')
             return
         if args[0].lower() == 'daily':
             bandwidth_usage = await get_daily_bandwidth()
@@ -642,6 +678,11 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if args[0].lower() == 'top':
             bandwidth_usage = await get_top_bandwidth()
             formatted_output = format_top_bandwidth_usage(bandwidth_usage)
+            await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
+            return
+        if args[0].lower() == '5m':
+            bandwidth_usage = await get_recent_5_minutes_bandwidth()
+            formatted_output = await format_recent_5_minutes_bandwidth_usage(bandwidth_usage)
             await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
             return
 
