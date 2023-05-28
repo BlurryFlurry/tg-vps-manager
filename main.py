@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 import asyncio
 import html
+import json
 import logging
 import random
+import re
 import sqlite3
 import string
 from datetime import datetime
+from logging import Logger
 from os import environ
+from typing import Union
 
 conn = sqlite3.connect('tgbot.db')
 c = conn.cursor()
@@ -15,14 +19,15 @@ c.execute('''CREATE TABLE IF NOT EXISTS command_permissions
 
 conn.commit()
 
-from telegram import Update
-from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHandler, ContextTypes, ConversationHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHandler, ContextTypes, ConversationHandler, \
+    CallbackQueryHandler
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
-logger = logging.getLogger(__name__)
+logger: Logger = logging.getLogger(__name__)
 log_file = '/var/log/ptb.log'
 
 USERNAME, EXPIRE, MAX_LOGINS = range(3)
@@ -37,6 +42,9 @@ async def assert_can_run_command(command_name: str, user_id: int, context: Conte
         return True
     else:
         await context.bot.send_message(chat_id=user_id, text='You do not have permission to run this command.')
+        await context.bot.send_message(chat_id=user_id,
+                                       text='''This can happen for a variety of reasons. I am a part of the script named "Dig-my-tunnel" (github.comBlurryFlurry/dig-my-tunnel), which allows server owners to administer their servers using a simple telegram bot like me. \n If you know who owns the server that I manage, he must provide you access to perform the command. And if you don't know who that person is, I apologize; you may be conversing with a private bot controlled by someone. In this circumstance, I am unable to assist you.''')
+
         return False
 
 
@@ -272,6 +280,9 @@ async def user_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await user_exist(user):
         await update.message.reply_text("User already exists, pick a different username")
         return USERNAME
+    elif not re.match(r'^[a-z_][a-z0-9_-]{0,31}$', user['username']):
+        await update.message.reply_text("Invalid username, pick a different username")
+        return USERNAME
     logger.info(f'username sets to {user["username"]}')
     await update.message.reply_text(
         f'How many days do you want to keep the user: {user.get("username")}?' + ' [or /skip]')
@@ -320,8 +331,14 @@ async def skip_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-async def shell_exec_stdout(command, oneline=False):
-    logger.info("Running: " + command)
+async def shell_exec_stdout(command: str, oneline: bool = False) -> Union[list, str]:
+    """
+
+    :param command: command to execute
+    :param oneline: True if oneline
+    :return:
+    """
+    logger.info("Running: %s", command)
 
     process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
 
@@ -377,6 +394,308 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 </pre>
                                                                     <a href="https://github.com/BlurryFlurry/dig-my-tunnel">❬../❭</a> ''',
                                        chat_id=user_id, parse_mode='HTML', disable_web_page_preview=True)
+
+
+# function to get hourly bandwidth usage
+async def get_hourly_bandwidth():
+    command = '/usr/bin/vnstat --json h'
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.PIPE)
+    stdout, _ = await process.communicate()
+    return stdout.decode().strip()
+
+
+# function to get daily bandwidth usage
+async def get_daily_bandwidth():
+    command = '/usr/bin/vnstat --json d'
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.PIPE)
+    stdout, _ = await process.communicate()
+    return stdout.decode().strip()
+
+
+async def get_monthly_bandwidth():
+    """
+    Function to get monthly bandwidth usage
+    :return:
+    """
+    command = '/usr/bin/vnstat --json m'
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.PIPE)
+    stdout, _ = await process.communicate()
+    return stdout.decode().strip()
+
+
+# function to format monthly bandwidth usage
+def format_monthly_bandwidth_usage(usage):
+    try:
+        data = json.loads(usage)
+    except json.JSONDecodeError:
+        return "Error: Failed to retrieve monthly bandwidth usage data."
+
+    interfaces = data['interfaces']
+    output = []
+
+    for interface in interfaces:
+        output.append(f"Interface: {interface['name']}")
+        output.append("------------------------")
+
+        traffic = interface.get('traffic', {}).get('month', [])
+
+        for month in traffic:
+            year = month['date']['year']
+            month_number = month['date']['month']
+            received = month['rx']
+            sent = month['tx']
+            total = received + sent
+
+            output.append(f"Month: {year}-{month_number}")
+            output.append(f"Received: {sizeof_fmt(received)}")
+            output.append(f"Sent: {sizeof_fmt(sent)}")
+            output.append(f"Total: {sizeof_fmt(total)}")
+            output.append("------------------------")
+
+    return "\n".join(output)
+
+
+# function to get recent 5 minutes bandwidth usage
+async def get_recent_5_minutes_bandwidth():
+    command = '/usr/bin/vnstat -5 --json'
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.PIPE)
+    stdout, _ = await process.communicate()
+    return stdout.decode().strip()
+
+
+# function to format recent 5 minutes bandwidth usage
+async def format_recent_5_minutes_bandwidth_usage(usage):
+    data = json.loads(usage)
+    interfaces = data["interfaces"]
+    message = ""
+
+    for interface in interfaces:
+        interface_name = interface["name"]
+        fiveminute = interface["traffic"]["fiveminute"]
+
+        message += f"Interface: {interface_name}\n"
+        message += "Recent 5 minutes' bandwidth usage:\n"
+
+        for entry in fiveminute:
+            timestamp = entry["timestamp"]
+            rx = entry["rx"]
+            tx = entry["tx"]
+            time_str = f"{timestamp // 3600:02d}:{(timestamp % 3600) // 60:02d}"
+            bandwidth_str = f"RX: {sizeof_fmt(rx)} bytes, TX: {sizeof_fmt(tx)} bytes"
+
+            message += f"{time_str} - {bandwidth_str}\n"
+
+        message += "\n"
+
+    return message
+
+
+# function to format hourly bandwidth usage
+def format_hourly_bandwidth_usage(usage, max_length=4096):
+    try:
+        data = json.loads(usage)
+    except json.JSONDecodeError:
+        return "Error: Failed to retrieve hourly bandwidth usage data."
+
+    interfaces = data['interfaces']
+    output = []
+
+    for interface in interfaces:
+        output.append(f"Interface: {interface['name']}")
+        output.append("------------------------")
+
+        traffic = interface.get('traffic', {}).get('hour', [])
+
+        for hour in traffic:
+            year = hour['date']['year']
+            month = hour['date']['month']
+            day = hour['date']['day']
+            hour_number = hour['time']['hour']
+            minute_number = hour['time']['minute']
+            received = hour['rx']
+            sent = hour['tx']
+            total = received + sent
+
+            output.append(f"Date: {year}-{month}-{day}")
+            output.append(f"Time: {hour_number}:{minute_number}")
+            output.append(f"Received: {sizeof_fmt(received)}")
+            output.append(f"Sent: {sizeof_fmt(sent)}")
+            output.append(f"Total: {sizeof_fmt(total)}")
+            output.append("------------------------")
+
+    if len(output) > max_length:
+        output = output[:max_length]  # Trim the output to the maximum length
+        output += "\n[...]\n"  # Add an ellipsis to indicate that the message is truncated
+
+    messages = []
+    while output:
+        if len(output) <= max_length:
+            messages.append(output)
+            break
+        else:
+            # Find the last newline character within the maximum length
+            last_newline_index = output[:max_length].rfind('\n')
+            if last_newline_index == -1:
+                # If no newline found, split at the maximum length
+                last_newline_index = max_length
+            messages.append(output[:last_newline_index].strip())
+            output = output[last_newline_index:].strip()
+
+    return messages
+
+
+# function to get top bandwidth usage
+async def get_top_bandwidth():
+    command = '/usr/bin/vnstat --top --json'
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.PIPE)
+    stdout, _ = await process.communicate()
+    return stdout.decode().strip()
+
+
+# function to format  top bandwidth usage
+def format_top_bandwidth_usage(usage):
+    try:
+        data = json.loads(usage)
+    except json.JSONDecodeError:
+        return "Error: Failed to retrieve hourly bandwidth usage data."
+    interfaces = data['interfaces']
+    message = ""
+
+    for interface in interfaces:
+        name = interface['name']
+        traffic = interface['traffic']
+        days = traffic['day']
+
+        message += f"Top Traffic Days - {name}\n"
+        for day in days:
+            date = day['date']
+            rx = day['rx']
+            tx = day['tx']
+            formatted_date = f"{date['year']}-{date['month']}-{date['day']}"
+            formatted_rx = sizeof_fmt(rx)
+            formatted_tx = sizeof_fmt(tx)
+
+            message += f"Date: {formatted_date}\n"
+            message += f"Download: {formatted_rx}\n"
+            message += f"Upload: {formatted_tx}\n\n"
+
+    return message
+
+
+def sizeof_fmt(num, suffix="B"):
+    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
+        if abs(num) < 1024.0:
+            return f"{num:3.1f}{unit}{suffix}"
+        num /= 1024.0
+    return f"{num:.1f}Yi{suffix}"
+
+
+# function to format daily bandwidth usage
+def format_daily_bandwidth_usage(usage):
+    try:
+        data = json.loads(usage)
+    except json.JSONDecodeError:
+        logger.info(usage)
+        return "Error: Failed to retrieve bandwidth usage data."
+
+    interface = data['interfaces'][0]
+    output = [f"Interface: {interface['name']}", "------------------------"]
+
+    traffic = interface.get('traffic', {}).get('day', [])
+
+    for day in traffic:
+        date = f"{day['date']['year']}-{day['date']['month']}-{day['date']['day']}"
+        received = day['rx']
+        sent = day['tx']
+        total = received + sent
+
+        output.append(f"Date: {date}")
+        output.append(f"Received: {sizeof_fmt(received)}")
+        output.append(f"Sent: {sizeof_fmt(sent)}")
+        output.append(f"Total: {sizeof_fmt(total)}")
+        output.append("------------------------")
+
+    return "\n".join(output)
+
+
+async def get_available_interfaces():
+    """function to get available interfaces"""
+    command = '/usr/bin/vnstat --iflist'
+    output = await shell_exec_stdout(command, True)
+    # Parse the output to extract interface names
+    if output.startswith("Available interfaces:"):
+        interfaces = output.split(":")[1].strip().split()
+        return interfaces
+    return []
+
+
+async def vnstat_cfg(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    command_name = '/vnstat_cfg'
+    if await assert_can_run_command(command_name, user_id, context):
+        interfaces = await get_available_interfaces()
+        keyboard = [[InlineKeyboardButton(interface, callback_data=interface)] for interface in interfaces]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text('Select a network interface:', reply_markup=reply_markup)
+        return
+
+
+# function to handle callback query vnstat_save
+async def vnstat_add_interface(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    command_name = '/vnstat_cfg'
+    if await assert_can_run_command(command_name, user_id, context):
+        query = update.callback_query
+        await query.answer()
+        interface = query.data
+        await query.edit_message_text(text=f'Adding interface: {interface}')
+        command = f'/usr/bin/vnstat --add -i {interface}'
+        await shell_exec(command)
+        await query.edit_message_text(text=f'Interface: {interface} added')
+        return
+
+
+async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global formatted_output
+    user_id = update.effective_user.id
+    command_name = '/vnstat'
+    if await assert_can_run_command(command_name, user_id, context):
+        args = context.args
+        if not len(args) == 1:
+            await context.bot.send_message(chat_id=update.effective_chat.id,
+                                           text='Usage: /vnstat arg [daily | monthly | hourly | top | 5m ]')
+            return
+        if args[0].lower() == 'daily':
+            bandwidth_usage = await get_daily_bandwidth()
+            formatted_output = format_daily_bandwidth_usage(bandwidth_usage)
+            await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
+            return
+        if args[0].lower() == 'monthly':
+            bandwidth_usage = await get_monthly_bandwidth()
+            formatted_output = format_monthly_bandwidth_usage(bandwidth_usage)
+            await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
+            return
+        if args[0].lower() == 'hourly':
+            bandwidth_usage = await get_hourly_bandwidth()
+            formatted_output_messages = format_hourly_bandwidth_usage(bandwidth_usage)
+            for formatted_output_message in formatted_output_messages:
+                await update.message.reply_text('<pre>' + "\n".join(formatted_output_message) + '</pre>', parse_mode='html')
+            return
+        if args[0].lower() == 'top':
+            bandwidth_usage = await get_top_bandwidth()
+            formatted_output = format_top_bandwidth_usage(bandwidth_usage)
+            await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
+            return
+        if args[0].lower() == '5m':
+            bandwidth_usage = await get_recent_5_minutes_bandwidth()
+            formatted_output = await format_recent_5_minutes_bandwidth_usage(bandwidth_usage)
+            await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
+            return
 
 
 async def get_random_password():
@@ -449,6 +768,8 @@ if __name__ == '__main__':
 
         }, fallbacks=[CommandHandler('cancel', chbanner_cancel)]
     )
+    vnstat_cfg_handler = CommandHandler('vnstat_cfg', vnstat_cfg)
+    vnstat_cfg_add_interface_handler = CallbackQueryHandler(vnstat_add_interface)
 
     grant_handler = CommandHandler('grant', grant)
     lsusers_handler = CommandHandler('lsusers', lsusers)
@@ -457,11 +778,15 @@ if __name__ == '__main__':
     user_password_handler = CommandHandler('chpass', chpass)
     deluser_handler = CommandHandler('deluser', deluser)
     server_stats_handler = CommandHandler('server_stats', server_stats)
+    vnstat_handler = CommandHandler('vnstat', vnstat)
 
     application.add_handlers([
         user_create_conv_handler,
         chbanner_conv_handler,
+        vnstat_cfg_handler,
+        vnstat_cfg_add_interface_handler,
         server_stats_handler,
+        vnstat_handler,
         lsusers_handler,
         deluser_handler,
         grant_handler,
