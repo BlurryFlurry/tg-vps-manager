@@ -493,15 +493,6 @@ async def format_recent_5_minutes_bandwidth_usage(usage):
     return message
 
 
-# function to get hourly bandwidth usage
-async def get_hourly_bandwidth():
-    command = '/usr/bin/vnstat --json h'
-    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
-                                                    stderr=asyncio.subprocess.PIPE)
-    stdout, _ = await process.communicate()
-    return stdout.decode().strip()
-
-
 # function to format hourly bandwidth usage
 def format_hourly_bandwidth_usage(usage):
     try:
