@@ -540,31 +540,31 @@ def format_top_bandwidth_usage(usage):
 
 
 # function to format daily bandwidth usage
-def format_daily_bandwidth_usage(usage):
-    try:
-        data = json.loads(usage)
-    except json.JSONDecodeError:
-        logger.info(usage)
-        return "Error: Failed to retrieve bandwidth usage data."
-
-    interface = data['interfaces'][0]
-    output = [f"Interface: {interface['name']}", "------------------------"]
-
-    traffic = interface.get('traffic', {}).get('day', [])
-
-    for day in traffic:
-        date = f"{day['date']['year']}-{day['date']['month']}-{day['date']['day']}"
-        received = day['rx']
-        sent = day['tx']
-        total = received + sent
-
-        output.append(f"Date: {date}")
-        output.append(f"Received: {sizeof_fmt(received)}")
-        output.append(f"Sent: {sizeof_fmt(sent)}")
-        output.append(f"Total: {sizeof_fmt(total)}")
-        output.append("------------------------")
-
-    return "\n".join(output)
+# def format_daily_bandwidth_usage(usage):
+#     try:
+#         data = json.loads(usage)
+#     except json.JSONDecodeError:
+#         logger.info(usage)
+#         return "Error: Failed to retrieve bandwidth usage data."
+#
+#     interface = data['interfaces'][0]
+#     output = [f"Interface: {interface['name']}", "------------------------"]
+#
+#     traffic = interface.get('traffic', {}).get('day', [])
+#
+#     for day in traffic:
+#         date = f"{day['date']['year']}-{day['date']['month']}-{day['date']['day']}"
+#         received = day['rx']
+#         sent = day['tx']
+#         total = received + sent
+#
+#         output.append(f"Date: {date}")
+#         output.append(f"Received: {sizeof_fmt(received)}")
+#         output.append(f"Sent: {sizeof_fmt(sent)}")
+#         output.append(f"Total: {sizeof_fmt(total)}")
+#         output.append("------------------------")
+#
+#     return "\n".join(output)
 
 
 async def get_available_interfaces():
@@ -616,8 +616,10 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         if args[0].lower() == 'daily':
             bandwidth_usage = await get_daily_bandwidth()
-            formatted_output = format_daily_bandwidth_usage(bandwidth_usage)
-            await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
+            formatted_output_messages = format_bandwidth_usage(bandwidth_usage, 'daily')
+            for formatted_output_message in formatted_output_messages:
+                await update.message.reply_text('<pre>' + formatted_output_message + '</pre>',
+                                                parse_mode='html')
             return
         if args[0].lower() == 'monthly':
             bandwidth_usage = await get_monthly_bandwidth()

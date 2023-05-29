@@ -72,6 +72,41 @@ def format_bandwidth_usage(stats, usage_period, max_length=4096):
 
                 current_message.append('\n'.join(message))
                 current_length += len('\n'.join(message))
-    if current_message:
-        messages.append('\n'.join(current_message))
-    return messages
+        if current_message:
+            messages.append('\n'.join(current_message))
+        return messages
+
+    if usage_period.lower() == 'daily':
+        message = ["Daily Bandwidth Usage",
+                   "------------------------"]
+
+        for interface in interfaces:
+            message.append(f"Interface: {interface['name']}")
+            message.append("------------------------")
+
+            traffic = interface.get('traffic', {}).get('day', [])
+
+            for day in traffic:
+                date = f"{day['date']['year']}-{day['date']['month']}-{day['date']['day']}"
+                received = day['rx']
+                sent = day['tx']
+                total = received + sent
+
+                message.append(f"Date: {date}")
+                message.append(f"Received: {sizeof_fmt(received)}")
+                message.append(f"Sent: {sizeof_fmt(sent)}")
+                message.append(f"Total: {sizeof_fmt(total)}")
+                message.append("------------------------")
+
+                if current_length + len('\n'.join(message)) > max_length:
+                    # Truncate the current message and add it to the list
+                    messages.append('\n'.join(current_message))
+                    # logger.debug(f'current_message)
+                    current_message = []
+                    current_length = 0
+
+                current_message.append('\n'.join(message))
+                current_length += len('\n'.join(message))
+        if current_message:
+            messages.append('\n'.join(current_message))
+        return messages
