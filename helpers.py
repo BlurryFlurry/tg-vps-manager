@@ -22,8 +22,9 @@ def format_bandwidth_usage(stats, usage_period, max_length=4096):
     """
     format bandwidth usage data into a list of strings that suitable for telegram bot message
     :param stats: bandwidth stats
-    :param usage_period: monthly, daily, hourly, etc. :param max_length: Maximum length of the output message. The
-    output message will be truncated if it exceeds this length. :return:
+    :param str usage_period: monthly, daily, hourly, etc.
+    :param max_length: Maximum length of the output message. The output message will be truncated if it exceeds this length.
+    :return: list
     """
     try:
         data = json.loads(stats)
@@ -31,14 +32,17 @@ def format_bandwidth_usage(stats, usage_period, max_length=4096):
         return "Error: Failed to retrieve monthly bandwidth usage data."
 
     interfaces = data['interfaces']
-    output = []
-    if usage_period == 'Hourly':
-        output.append("Hourly Bandwidth Usage")
-        output.append("------------------------")
+    messages = []
+    current_length = 0
+    current_message = []
+
+    if usage_period.lower() == 'hourly':
+        message = ["Hourly Bandwidth Usage",
+                   "------------------------"]
 
         for interface in interfaces:
-            output.append(f"Interface: {interface['name']}")
-            output.append("------------------------")
+            message.append(f"Interface: {interface['name']}")
+            message.append("------------------------")
 
             traffic = interface.get('traffic', {}).get('hour', [])
 
@@ -52,29 +56,22 @@ def format_bandwidth_usage(stats, usage_period, max_length=4096):
                 sent = hour['tx']
                 total = received + sent
 
-                output.append(f"Date: {year}-{month}-{day}")
-                output.append(f"Time: {hour_number}:{minute_number}")
-                output.append(f"Received: {sizeof_fmt(received)}")
-                output.append(f"Sent: {sizeof_fmt(sent)}")
-                output.append(f"Total: {sizeof_fmt(total)}")
-                output.append("------------------------")
+                message.append(f"Date: {year}-{month}-{day}")
+                message.append(f"Time: {hour_number}:{minute_number}")
+                message.append(f"Received: {sizeof_fmt(received)}")
+                message.append(f"Sent: {sizeof_fmt(sent)}")
+                message.append(f"Total: {sizeof_fmt(total)}")
+                message.append("------------------------")
 
-    if len(output) > max_length:
-        output = output[:max_length]  # Trim the output to the maximum length
-        output += "\n[...]\n"  # Add an ellipsis to indicate that the message is truncated
+                if current_length + len('\n'.join(message)) > max_length:
+                    # Truncate the current message and add it to the list
+                    messages.append('\n'.join(current_message))
+                    # logger.debug(f'current_message)
+                    current_message = []
+                    current_length = 0
 
-    messages = []
-    while output:
-        if len(output) <= max_length:
-            messages.append(output)
-            break
-        else:
-            # Find the last newline character within the maximum length
-            last_newline_index = output[:max_length].rfind('\n')
-            if last_newline_index == -1:
-                # If no newline found, split at the maximum length
-                last_newline_index = max_length
-            messages.append(output[:last_newline_index].strip())
-            output = output[last_newline_index:].strip()
-
+                current_message.append('\n'.join(message))
+                current_length += len('\n'.join(message))
+    if current_message:
+        messages.append('\n'.join(current_message))
     return messages

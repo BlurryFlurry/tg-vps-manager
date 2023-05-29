@@ -628,7 +628,7 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             bandwidth_usage = await get_hourly_bandwidth()
             formatted_output_messages = format_bandwidth_usage(bandwidth_usage, 'hourly')
             for formatted_output_message in formatted_output_messages:
-                await update.message.reply_text('<pre>' + "\n".join(formatted_output_message) + '</pre>',
+                await update.message.reply_text('<pre>' + formatted_output_message + '</pre>',
                                                 parse_mode='html')
             return
         if args[0].lower() == 'top':
