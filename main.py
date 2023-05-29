@@ -103,7 +103,8 @@ async def assert_deletable_user(user):
 
 async def user_delete(user):
     if await user_exist(user):
-        # todo: check max login sessions entry and clear that line
+        # delete file if exist
+        await shell_exec(f'/usr/bin/sudo /usr/bin/rm -rf /etc/security/limits.d/{user["username"]}.conf')
         await shell_exec(f'/usr/bin/sudo /usr/sbin/userdel -rf {user["username"]}')
     else:
         return False
