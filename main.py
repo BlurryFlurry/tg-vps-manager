@@ -12,6 +12,8 @@ from logging import Logger
 from os import environ
 from typing import Union
 
+from helpers import sizeof_fmt, format_bandwidth_usage
+
 conn = sqlite3.connect('tgbot.db')
 c = conn.cursor()
 c.execute('''CREATE TABLE IF NOT EXISTS command_permissions
@@ -80,7 +82,8 @@ async def create_user():
         await shell_exec(shell_command)
 
     if 'max_logins' in user and user['max_logins'] != 0:
-        shell_command = f'echo "{user["username"]} hard maxlogins {user["max_logins"]}" | sudo tee -a /etc/security/limits.conf'
+        await shell_exec('/usr/bin/mkdir -p /etc/security/limits.d')
+        shell_command = f'echo "{user["username"]} hard maxlogins {user["max_logins"]}" | sudo tee -a /etc/security/limits.d'
         await shell_exec(shell_command)
 
 
@@ -495,58 +498,6 @@ async def format_recent_5_minutes_bandwidth_usage(usage):
 
 
 # function to format hourly bandwidth usage
-def format_hourly_bandwidth_usage(usage, max_length=4096):
-    try:
-        data = json.loads(usage)
-    except json.JSONDecodeError:
-        return "Error: Failed to retrieve hourly bandwidth usage data."
-
-    interfaces = data['interfaces']
-    output = []
-
-    for interface in interfaces:
-        output.append(f"Interface: {interface['name']}")
-        output.append("------------------------")
-
-        traffic = interface.get('traffic', {}).get('hour', [])
-
-        for hour in traffic:
-            year = hour['date']['year']
-            month = hour['date']['month']
-            day = hour['date']['day']
-            hour_number = hour['time']['hour']
-            minute_number = hour['time']['minute']
-            received = hour['rx']
-            sent = hour['tx']
-            total = received + sent
-
-            output.append(f"Date: {year}-{month}-{day}")
-            output.append(f"Time: {hour_number}:{minute_number}")
-            output.append(f"Received: {sizeof_fmt(received)}")
-            output.append(f"Sent: {sizeof_fmt(sent)}")
-            output.append(f"Total: {sizeof_fmt(total)}")
-            output.append("------------------------")
-
-    if len(output) > max_length:
-        output = output[:max_length]  # Trim the output to the maximum length
-        output += "\n[...]\n"  # Add an ellipsis to indicate that the message is truncated
-
-    messages = []
-    while output:
-        if len(output) <= max_length:
-            messages.append(output)
-            break
-        else:
-            # Find the last newline character within the maximum length
-            last_newline_index = output[:max_length].rfind('\n')
-            if last_newline_index == -1:
-                # If no newline found, split at the maximum length
-                last_newline_index = max_length
-            messages.append(output[:last_newline_index].strip())
-            output = output[last_newline_index:].strip()
-
-    return messages
-
 
 # function to get top bandwidth usage
 async def get_top_bandwidth():
@@ -585,14 +536,6 @@ def format_top_bandwidth_usage(usage):
             message += f"Upload: {formatted_tx}\n\n"
 
     return message
-
-
-def sizeof_fmt(num, suffix="B"):
-    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
-        if abs(num) < 1024.0:
-            return f"{num:3.1f}{unit}{suffix}"
-        num /= 1024.0
-    return f"{num:.1f}Yi{suffix}"
 
 
 # function to format daily bandwidth usage
@@ -682,9 +625,10 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         if args[0].lower() == 'hourly':
             bandwidth_usage = await get_hourly_bandwidth()
-            formatted_output_messages = format_hourly_bandwidth_usage(bandwidth_usage)
+            formatted_output_messages = format_bandwidth_usage(bandwidth_usage, 'hourly')
             for formatted_output_message in formatted_output_messages:
-                await update.message.reply_text('<pre>' + "\n".join(formatted_output_message) + '</pre>', parse_mode='html')
+                await update.message.reply_text('<pre>' + "\n".join(formatted_output_message) + '</pre>',
+                                                parse_mode='html')
             return
         if args[0].lower() == 'top':
             bandwidth_usage = await get_top_bandwidth()
