@@ -83,7 +83,7 @@ async def create_user():
 
     if 'max_logins' in user and user['max_logins'] != 0:
         await shell_exec('/usr/bin/mkdir -p /etc/security/limits.d')
-        shell_command = f'echo "{user["username"]} hard maxlogins {user["max_logins"]}" | sudo tee -a /etc/security/limits.d'
+        shell_command = f'echo "{user["username"]} hard maxlogins {user["max_logins"]}" | sudo tee -a /etc/security/limits.d/{user["username"]}.conf'
         await shell_exec(shell_command)
 
 
