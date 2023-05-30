@@ -2,16 +2,13 @@
 import asyncio
 import html
 import json
-import logging
-import random
+from helpers import logger
 import re
 import sqlite3
-import string
 from datetime import datetime
-from logging import Logger
 from os import environ
 from typing import Union
-
+from helpers import get_random_password
 from helpers import sizeof_fmt, format_bandwidth_usage
 
 conn = sqlite3.connect('tgbot.db')
@@ -24,13 +21,6 @@ conn.commit()
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHandler, ContextTypes, ConversationHandler, \
     CallbackQueryHandler
-
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-logger: Logger = logging.getLogger(__name__)
-log_file = '/var/log/ptb.log'
 
 USERNAME, EXPIRE, MAX_LOGINS = range(3)
 user = dict()
@@ -430,38 +420,6 @@ async def get_monthly_bandwidth():
     return stdout.decode().strip()
 
 
-# function to format monthly bandwidth usage
-def format_monthly_bandwidth_usage(usage):
-    try:
-        data = json.loads(usage)
-    except json.JSONDecodeError:
-        return "Error: Failed to retrieve monthly bandwidth usage data."
-
-    interfaces = data['interfaces']
-    output = []
-
-    for interface in interfaces:
-        output.append(f"Interface: {interface['name']}")
-        output.append("------------------------")
-
-        traffic = interface.get('traffic', {}).get('month', [])
-
-        for month in traffic:
-            year = month['date']['year']
-            month_number = month['date']['month']
-            received = month['rx']
-            sent = month['tx']
-            total = received + sent
-
-            output.append(f"Month: {year}-{month_number}")
-            output.append(f"Received: {sizeof_fmt(received)}")
-            output.append(f"Sent: {sizeof_fmt(sent)}")
-            output.append(f"Total: {sizeof_fmt(total)}")
-            output.append("------------------------")
-
-    return "\n".join(output)
-
-
 # function to get recent 5 minutes bandwidth usage
 async def get_recent_5_minutes_bandwidth():
     command = '/usr/bin/vnstat -5 --json'
@@ -539,34 +497,6 @@ def format_top_bandwidth_usage(usage):
     return message
 
 
-# function to format daily bandwidth usage
-# def format_daily_bandwidth_usage(usage):
-#     try:
-#         data = json.loads(usage)
-#     except json.JSONDecodeError:
-#         logger.info(usage)
-#         return "Error: Failed to retrieve bandwidth usage data."
-#
-#     interface = data['interfaces'][0]
-#     output = [f"Interface: {interface['name']}", "------------------------"]
-#
-#     traffic = interface.get('traffic', {}).get('day', [])
-#
-#     for day in traffic:
-#         date = f"{day['date']['year']}-{day['date']['month']}-{day['date']['day']}"
-#         received = day['rx']
-#         sent = day['tx']
-#         total = received + sent
-#
-#         output.append(f"Date: {date}")
-#         output.append(f"Received: {sizeof_fmt(received)}")
-#         output.append(f"Sent: {sizeof_fmt(sent)}")
-#         output.append(f"Total: {sizeof_fmt(total)}")
-#         output.append("------------------------")
-#
-#     return "\n".join(output)
-
-
 async def get_available_interfaces():
     """function to get available interfaces"""
     command = '/usr/bin/vnstat --iflist'
@@ -623,8 +553,10 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         if args[0].lower() == 'monthly':
             bandwidth_usage = await get_monthly_bandwidth()
-            formatted_output = format_monthly_bandwidth_usage(bandwidth_usage)
-            await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
+            formatted_output_messages = format_bandwidth_usage(bandwidth_usage, 'monthly')
+            for formatted_output_message in formatted_output_messages:
+                await update.message.reply_text('<pre>' + formatted_output_message + '</pre>',
+                                                parse_mode='html')
             return
         if args[0].lower() == 'hourly':
             bandwidth_usage = await get_hourly_bandwidth()
@@ -634,21 +566,19 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                 parse_mode='html')
             return
         if args[0].lower() == 'top':
-            bandwidth_usage = await get_top_bandwidth()
-            formatted_output = format_top_bandwidth_usage(bandwidth_usage)
-            await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
+            bandwidth_usage = await get_daily_bandwidth()
+            formatted_output_messages = format_bandwidth_usage(bandwidth_usage, 'top')
+            for formatted_output_message in formatted_output_messages:
+                await update.message.reply_text('<pre>' + formatted_output_message + '</pre>',
+                                                parse_mode='html')
             return
         if args[0].lower() == '5m':
             bandwidth_usage = await get_recent_5_minutes_bandwidth()
-            formatted_output = await format_recent_5_minutes_bandwidth_usage(bandwidth_usage)
-            await update.message.reply_text('<pre>' + formatted_output + '</pre>', parse_mode='html')
+            formatted_output_messages = format_bandwidth_usage(bandwidth_usage, '5m')
+            for formatted_output_message in formatted_output_messages:
+                await update.message.reply_text('<pre>' + formatted_output_message + '</pre>',
+                                                parse_mode='html')
             return
-
-
-async def get_random_password():
-    characters = string.ascii_letters + string.digits + string.punctuation
-    pw_template = ''.join(random.choice(characters) for i in range(8))
-    return pw_template
 
 
 async def reboot(update: Update, context: ContextTypes.DEFAULT_TYPE):

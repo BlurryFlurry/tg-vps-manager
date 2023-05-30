@@ -1,8 +1,28 @@
 import json
+import logging
+import random
+import string
+from logging import Logger
+
+# <editor-fold desc="Logger configuration">
+logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+logger: Logger = logging.getLogger(__name__)
+
+fileHandler = logging.FileHandler(f"{'/var/log'}/{'ptb.log'}.log")
+fileHandler.setFormatter(logFormatter)
+logger.addHandler(fileHandler)
+
+consoleHandler = logging.StreamHandler()
+consoleHandler.setFormatter(logFormatter)
+logger.addHandler(consoleHandler)
+
+logging.basicConfig(
+    format='%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s',
+    level=logging.INFO
+)
 
 
-# from main import logger
-# from main import shell_exec
+# </editor-fold>
 
 def sizeof_fmt(num, suffix="B"):
     """
@@ -18,7 +38,7 @@ def sizeof_fmt(num, suffix="B"):
     return f"{num:.1f}Yi{suffix}"
 
 
-def format_bandwidth_usage(stats, usage_period, max_length=4096):
+def format_bandwidth_usage(stats, usage_period, max_length=4084):
     """
     format bandwidth usage data into a list of strings that suitable for telegram bot message
     :param stats: bandwidth stats
@@ -34,7 +54,7 @@ def format_bandwidth_usage(stats, usage_period, max_length=4096):
     interfaces = data['interfaces']
     messages = []
     current_length = 0
-    current_message = []
+    current_message = ""
 
     if usage_period.lower() == 'hourly':
         message = ["Hourly Bandwidth Usage",
@@ -63,21 +83,22 @@ def format_bandwidth_usage(stats, usage_period, max_length=4096):
                 message.append(f"Total: {sizeof_fmt(total)}")
                 message.append("------------------------")
 
-                if current_length + len('\n'.join(message)) > max_length:
+                if current_length + len('\n' + '\n'.join(message)) > max_length:
                     # Truncate the current message and add it to the list
-                    messages.append('\n'.join(current_message))
-                    # logger.debug(f'current_message)
-                    current_message = []
+                    messages.append(''.join(current_message))
+                    current_message = ""
                     current_length = 0
 
-                current_message.append('\n'.join(message))
-                current_length += len('\n'.join(message))
+                current_message += '\n' + '\n'.join(message)
+                current_length += len(current_message)
+                message = []
         if current_message:
-            messages.append('\n'.join(current_message))
+            messages.append(current_message)
         return messages
 
-    if usage_period.lower() == 'daily':
-        message = ["Daily Bandwidth Usage",
+    if any([x in usage_period.lower() for x in ['daily', 'top']]):
+
+        message = [f"{usage_period.title()} Bandwidth Usage",
                    "------------------------"]
 
         for interface in interfaces:
@@ -98,15 +119,87 @@ def format_bandwidth_usage(stats, usage_period, max_length=4096):
                 message.append(f"Total: {sizeof_fmt(total)}")
                 message.append("------------------------")
 
-                if current_length + len('\n'.join(message)) > max_length:
+                if current_length + len('\n' + '\n'.join(message)) > max_length:
                     # Truncate the current message and add it to the list
-                    messages.append('\n'.join(current_message))
-                    # logger.debug(f'current_message)
-                    current_message = []
+                    messages.append(''.join(current_message))
+                    current_message = ""
                     current_length = 0
 
-                current_message.append('\n'.join(message))
-                current_length += len('\n'.join(message))
-        if current_message:
-            messages.append('\n'.join(current_message))
+                current_message += '\n' + '\n'.join(message)
+                current_length += len(current_message)
+                message = []
+            if current_message:
+                messages.append(current_message)
         return messages
+
+    if usage_period.lower() == 'monthly':
+        message = ["Monthly Bandwidth Usage",
+                   "------------------------"]
+
+        for interface in interfaces:
+            message.append(f"Interface: {interface['name']}")
+            message.append("------------------------")
+
+            traffic = interface.get('traffic', {}).get('month', [])
+
+            for month in traffic:
+                year = month['date']['year']
+                month_number = month['date']['month']
+                received = month['rx']
+                sent = month['tx']
+                total = received + sent
+
+                message.append(f"Month: {year}-{month_number}")
+                message.append(f"Received: {sizeof_fmt(received)}")
+                message.append(f"Sent: {sizeof_fmt(sent)}")
+                message.append(f"Total: {sizeof_fmt(total)}")
+                message.append("------------------------")
+
+                if current_length + len('\n' + '\n'.join(message)) > max_length:
+                    # Truncate the current message and add it to the list
+                    messages.append(''.join(current_message))
+                    current_message = ""
+                    current_length = 0
+
+                current_message += '\n' + '\n'.join(message)
+                current_length += len(current_message)
+                message = []
+            if current_message:
+                messages.append(current_message)
+        return messages
+
+    if usage_period.lower() == '5m':
+        message = ["Recent 5m Bandwidth Usage",
+                   "------------------------"]
+
+        for interface in interfaces:
+            message.append(f"Interface: {interface['name']}")
+            message.append("------------------------")
+
+            traffic = interface.get('traffic', {}).get('fiveminute', [])
+
+            for entry in traffic:
+                timestamp = entry["timestamp"]
+                rx = entry["rx"]
+                tx = entry["tx"]
+                time_str = f"{timestamp // 3600:02d}:{(timestamp % 3600) // 60:02d}"
+                bandwidth_str = f"RX: {sizeof_fmt(rx)} bytes, TX: {sizeof_fmt(tx)} bytes"
+                message.append(f"{time_str} - {bandwidth_str}")
+
+                if current_length + len('\n' + '\n'.join(message)) > max_length:
+                    # Truncate the current message and add it to the list
+                    messages.append(''.join(current_message))
+                    current_message = ""
+                    current_length = 0
+                current_message += '\n' + '\n'.join(message)
+                current_length += len(current_message)
+                message = []
+            if current_message:
+                messages.append(current_message)
+        return messages
+
+
+async def get_random_password():
+    characters = string.ascii_letters + string.digits + string.punctuation
+    pw_template = ''.join(random.choice(characters) for i in range(8))
+    return pw_template
