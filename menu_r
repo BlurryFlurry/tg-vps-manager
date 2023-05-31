@@ -50,6 +50,7 @@ update_telegram_bot() {
   if [ ! -f "$HOME/.config/ptb-service-version.txt" ] || [ "$(cat "$HOME"/.config/ptb-service-version.txt)" != "$LATEST_TAG" ]; then
 
     # Pull the latest tag to the local repository
+    sudo -u $ptb_service_user git config --global --add safe.directory "$LOCAL_REPO_DIR"
     sudo -u $ptb_service_user git reset --hard origin/main && git clean -f -d
     sudo -u $ptb_service_user git checkout main -f
     sudo -u $ptb_service_user git reset --hard origin/main && git clean -f -d
