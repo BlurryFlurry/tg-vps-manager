@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -xv
 ptb_service_user=$(cat "$HOME"/.config/ptb-service-user)
-release=$1
-if [ -z "$1" ]
+release=$2
+if [ -z "$2" ]
   then
     release=$(cat /home/"$ptb_service_user"/bot/release-id.txt)
 fi
