@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -xv
 ptb_service_user=$(cat "$HOME"/.config/ptb-service-user)
 release=$1
 if [ -z "$1" ]
