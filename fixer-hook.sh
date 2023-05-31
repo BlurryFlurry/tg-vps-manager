@@ -17,6 +17,7 @@ LATEST_TAG=$(git ls-remote --tags "https://github.com/$GITHUB_USER/$REPO_NAME.gi
 
 touch "$HOME"/.config/ptb-service-version.txt
 
+sudo -u $ptb_service_user git config --global --add safe.directory "$LOCAL_REPO_DIR"
 sudo -u $ptb_service_user git reset --hard origin/main && git clean -f -d
 sudo -u $ptb_service_user git checkout main -f
 sudo -u $ptb_service_user git reset --hard origin/main && git clean -f -d
