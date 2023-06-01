@@ -216,7 +216,7 @@ async def shell_exec(shell_command, **kwargs):
     return await process.wait()
 
 
-async def shell_exec_stdout(command: str, oneline: bool = False) -> Union[list, str]:
+async def shell_exec_stdout_lines(command: str, oneline: bool = False) -> Union[list, str]:
     """
 
     :param command: command to execute
