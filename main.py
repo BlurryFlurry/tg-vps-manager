@@ -2,7 +2,7 @@
 import asyncio
 import html
 import json
-from helpers import logger, shell_exec
+from helpers import logger, shell_exec, change_banner
 import re
 import sqlite3
 from datetime import datetime
@@ -237,12 +237,6 @@ async def chbanner_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return 1
     else:
         return ConversationHandler.END
-
-
-async def change_banner(banner):
-    with open('/etc/dropbear/banner.dat', 'w') as f:
-        f.write(banner)
-    await shell_exec('/usr/bin/sudo /usr/bin/systemctl restart dropbear.service')
 
 
 async def chbanner(update: Update, context: ContextTypes.DEFAULT_TYPE):
