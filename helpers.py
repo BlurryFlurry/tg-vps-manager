@@ -264,22 +264,23 @@ async def fetch_latest_version_tag():
             return None
 
 
-async def shell_exec(shell_command, **kwargs):
+async def shell_exec(command, **kwargs):
     """
     execute shell command
-    :param shell_command: command to be executed
+    :param command: command to be executed
     :param kwargs:
     :return: process
     """
-    logger.info('executing: %s', shell_command)
+    logger.info('executing: %s', command)
     try:
-        events.shell_exec_before(shell_command)
-        process = await asyncio.create_subprocess_shell(shell_command, **kwargs)
+        events.shell_exec_before(command)
+        process = await asyncio.create_subprocess_shell(command, **kwargs)
         return_code = await process.wait()
-        events.shell_exec_after(shell_command)
+        logger.info('executed: %s,  return code: %s', command, return_code)
+        events.shell_exec_after(command)
         return return_code
     except Exception as e:
-        logger.exception('Error executing: %s', shell_command, exc_info=True)
+        logger.exception('Error executing: %s', command, exc_info=True)
         logger.error(e)
         return
 
@@ -290,9 +291,10 @@ async def shell_exec_stdout(command):
         events.shell_exec_stdout_before(command)
         process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
                                                         stderr=asyncio.subprocess.PIPE)
-        stdout, _ = await process.communicate()
+        stdout, stderr = await process.communicate()
         events.shell_exec_stdout_after(command)
         clean_stdout = stdout.decode().strip()
+        logger.info('executed: %s \nstderr: %s \nstdout: %s \n', command, stderr.decode().strip(), clean_stdout)
         return clean_stdout
     except Exception as e:
         logger.exception('Error executing: %s', command, exc_info=True)
@@ -310,17 +312,21 @@ async def shell_exec_stdout_lines(command: str, oneline: bool = False) -> Union[
     logger.info("Executing command: %s", command)
     try:
         events.shell_exec_stdout_lines_before(command)
-        process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
+        process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         if oneline:
             data = await process.stdout.readline()
             line = data.decode('ascii').strip()
+            stderr = await process.stderr.read()
             await process.wait()
+            logger.info('executed: %s \nstderr: %s \nstdout: %s \n', command, stderr.decode().strip(), line)
             return line
 
-        output_bytes, _ = await process.communicate()
+        stdout_bytes, stderr_bytes = await process.communicate()
         events.shell_exec_stdout_lines_after(command)
-        lines_decoded = [line.decode() for line in output_bytes.splitlines()]
-        return lines_decoded
+        stdout_decoded = [line.decode() for line in stdout_bytes.splitlines()]
+        stderr_decoded = [line.decode() for line in stderr_bytes.splitlines()]
+        logger.info('executed: %s \nstderr: %s \nstdout: %s \n', command, stderr_decoded, stdout_decoded)
+        return stdout_decoded
     except Exception as e:
         logger.exception("Error executing: %s", command, exc_info=True)
         logger.error(e)

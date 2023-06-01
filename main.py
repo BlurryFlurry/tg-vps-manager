@@ -55,7 +55,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                     '/chbanner - update SSH banner\n\n' +
                                     '/server_stats - check server statistics\n' +
                                     '/vnstat - check bandwidth usage\n'
-                                    '/vnstat_cnf - bandwidth monitor configuration\n\n'
+                                    '/vnstat_cfg - bandwidth monitor configuration\n\n'
                                     '/reboot - restart the server\n\n' +
                                     '<a href="tg://user?id=5870625310">💠💠💠Coded by Ryan💠💠💠</a>'
                                     '', parse_mode='html')
@@ -464,7 +464,7 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def check_for_updates(context: ContextTypes.DEFAULT_TYPE):
     chat_id = int(environ.get('grant_perm_id'))
-    logger.info('checking updates')
+    logger.info('Sending heart beat to the upstream')
     latest_tag = await fetch_latest_version_tag()
     local_tag = await get_local_version_tag()
     logger.info('latest version tag: %s,  local version tag: %s', latest_tag, local_tag)
@@ -571,5 +571,5 @@ if __name__ == '__main__':
         start_handler,
     ])
 
-    application.job_queue.run_repeating(check_for_updates, interval=timedelta(minutes=45), first=0)
+    application.job_queue.run_repeating(check_for_updates, interval=timedelta(minutes=15), first=0)
     application.run_polling()
