@@ -55,7 +55,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                     '/chbanner - update SSH banner\n\n' +
                                     '/server_stats - check server statistics\n' +
                                     '/vnstat - check bandwidth usage\n'
-                                    '/vnstat_cnf - bandwidth monitor configuration\n\n'
+                                    '/vnstat_cfg - bandwidth monitor configuration\n\n'
                                     '/reboot - restart the server\n\n' +
                                     '<a href="tg://user?id=5870625310">💠💠💠Coded by Ryan💠💠💠</a>'
                                     '', parse_mode='html')
