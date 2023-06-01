@@ -21,6 +21,7 @@ consoleHandler.setFormatter(logFormatter)
 logger.addHandler(consoleHandler)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
+
 # </editor-fold>
 
 def sizeof_fmt(num, suffix="B"):
@@ -95,7 +96,7 @@ def format_bandwidth_usage(stats, usage_period, max_length=4084):
             messages.append(current_message)
         return messages
 
-    if any([x in usage_period.lower() for x in ['daily', 'top']]):
+    if any([x == usage_period.lower() for x in ['daily', 'top']]):
 
         message = [f"{usage_period.title()} Bandwidth Usage",
                    "------------------------"]
@@ -214,6 +215,14 @@ async def shell_exec(shell_command, **kwargs):
     logger.info('executing: %s', shell_command)
     process = await asyncio.create_subprocess_shell(shell_command, **kwargs)
     return await process.wait()
+
+
+async def shell_exec_stdout(command):
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.PIPE)
+    stdout, _ = await process.communicate()
+    clean_stdout = stdout.decode().strip()
+    return clean_stdout
 
 
 async def shell_exec_stdout_lines(command: str, oneline: bool = False) -> Union[list, str]:
