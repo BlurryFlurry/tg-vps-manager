@@ -297,11 +297,11 @@ async def logfile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id == int(environ.get('grant_perm_id')):  # shows debug info only to the admin
         args = context.args
-        if len(args) > 0:
+        if len(args) == 0:
             with open('/var/log/ptb.log', 'rb') as f:
                 await update.message.chat.send_document(f)
         else:
-            if args[0] == 'clear':
+            if args[0].lower() == 'clear':
                 open('/var/log/ptb.log', 'w').close()
                 await update.message.reply_text('Log file cleared')
 
