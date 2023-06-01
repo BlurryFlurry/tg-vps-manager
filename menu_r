@@ -48,6 +48,8 @@ update_telegram_bot() {
 
   # Check if the latest tag is different from the one stored in the local directory
   if [ ! -f "$HOME/.config/ptb-service-version.txt" ] || [ "$(cat "$HOME"/.config/ptb-service-version.txt)" != "$LATEST_TAG" ]; then
+    # backup current release ID notes for trackers in update hooks
+    sudo -u $ptb_service_user cp release-id.txt ~/.release-id.old
 
     # Pull the latest tag to the local repository
     sudo -u $ptb_service_user git config --global --add safe.directory "$LOCAL_REPO_DIR"
