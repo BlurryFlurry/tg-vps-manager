@@ -5,12 +5,10 @@ import json
 from helpers import logger, shell_exec, change_banner, shell_exec_stdout
 import re
 import sqlite3
-from datetime import datetime
 from os import environ
-from typing import Union
 from helpers import get_random_password
 from helpers import sizeof_fmt, format_bandwidth_usage
-
+from events import Events
 conn = sqlite3.connect('tgbot.db')
 c = conn.cursor()
 c.execute('''CREATE TABLE IF NOT EXISTS command_permissions
