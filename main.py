@@ -67,6 +67,7 @@ async def cancel_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def create_user():
     logger.info(f'creating user: {user}')
+    events.create_user_before(user)
     if 'expire' in user:
         shell_command = f'/usr/bin/sudo /usr/sbin/useradd -M -s /usr/sbin/nologin -e $(/usr/bin/date -d "+{user["expire"]} days" +%Y-%m-%d) "{user["username"]}"'
         await shell_exec(shell_command)
@@ -78,6 +79,7 @@ async def create_user():
         await shell_exec('/usr/bin/mkdir -p /etc/security/limits.d')
         shell_command = f'echo "{user["username"]} hard maxlogins {user["max_logins"]}" | sudo tee -a /etc/security/limits.d/{user["username"]}.conf'
         await shell_exec(shell_command)
+    events.create_user_after(user)
 
 
 async def get_users_list():
