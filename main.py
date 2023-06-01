@@ -2,6 +2,8 @@
 import asyncio
 import html
 import json
+import logging
+
 from helpers import logger, shell_exec, change_banner, shell_exec_stdout_lines, shell_exec_stdout, get_bandwidth_data
 import re
 import sqlite3
@@ -302,8 +304,14 @@ async def logfile(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.chat.send_document(f)
         else:
             if args[0].lower() == 'clear':
-                open('/var/log/ptb.log', 'w').close()
+                open('/var/log/ptb.log', 'w+').close()
                 await update.message.reply_text('Log file cleared')
+            elif args[0].lower() == 'debug':
+                logger.setLevel(logging.DEBUG)
+                await update.message.reply_text('Logging: debug mode enabled')
+            elif args[0].lower() == 'info':
+                await update.message.reply_text('Logging: info mode enabled')
+                logger.setLevel(logging.INFO)
 
     else:
         await context.bot.send_message(chat_id=update.effective_chat.id,
