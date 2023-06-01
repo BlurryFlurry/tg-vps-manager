@@ -196,8 +196,8 @@ async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
             created_time = await get_user_create_date(user['username'])
             expiry_date = await get_user_expiry_date(user['username'])
             hostname = await get_public_ip()
-            logger.info('created: ' + str(created_time))
-            logger.info('expiry: ' + str(expiry_date))
+            logger.info('created: %s', str(created_time))
+            logger.info('expiry: %s', str(expiry_date))
 
             await context.bot.send_message(text=f'''
 <pre>
