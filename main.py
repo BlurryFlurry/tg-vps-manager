@@ -9,6 +9,7 @@ from os import environ
 from helpers import get_random_password
 from helpers import sizeof_fmt, format_bandwidth_usage
 from events import Events
+
 conn = sqlite3.connect('tgbot.db')
 c = conn.cursor()
 c.execute('''CREATE TABLE IF NOT EXISTS command_permissions
@@ -279,6 +280,18 @@ async def expire(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return MAX_LOGINS
 
 
+async def release(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id == int(environ.get('grant_perm_id')):  # shows debug info only to the admin
+        with open('release-id.txt', 'r') as f:
+            release_id = f.read()
+        await update.message.reply_text(release_id)
+
+    else:
+        await context.bot.send_message(chat_id=update.effective_chat.id,
+                                       text='Sorry, you do not have permission to use this command.')
+
+
 async def skip_expire(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_expire = update.message.text
     logger.info('user expire sets to {:>8} %s' % user_expire)
@@ -311,9 +324,6 @@ async def skip_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=f"The user <code>{user['username']}</code> has successfully created. set the password using <code>/chpass {user['username']} {pw_template}</code>",
         parse_mode='HTML')
     return ConversationHandler.END
-
-
-
 
 
 async def get_service_processes():
@@ -616,6 +626,7 @@ if __name__ == '__main__':
     vnstat_cfg_add_interface_handler = CallbackQueryHandler(vnstat_add_interface)
 
     grant_handler = CommandHandler('grant', grant)
+    release_handler = CommandHandler('release', release)
     lsusers_handler = CommandHandler('lsusers', lsusers)
     reboot_handler = CommandHandler('reboot', reboot)
     help_handler = CommandHandler('help', help)
@@ -630,6 +641,7 @@ if __name__ == '__main__':
         vnstat_cfg_handler,
         vnstat_cfg_add_interface_handler,
         server_stats_handler,
+        release_handler,
         vnstat_handler,
         lsusers_handler,
         deluser_handler,
