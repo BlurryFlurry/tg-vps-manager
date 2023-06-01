@@ -7,7 +7,7 @@ import re
 import sqlite3
 from os import environ
 from helpers import get_random_password
-from helpers import sizeof_fmt, format_bandwidth_usage
+from helpers import format_bandwidth_usage
 
 # from events import Events
 

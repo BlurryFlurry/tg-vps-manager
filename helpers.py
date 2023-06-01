@@ -62,154 +62,159 @@ def format_bandwidth_usage(stats, usage_period, max_length=4084):
     try:
         data = json.loads(stats)
     except json.JSONDecodeError:
+        logger.exception("Error: Failed to retrieve monthly bandwidth usage data.", exc_info=True)
         return "Error: Failed to retrieve monthly bandwidth usage data."
 
     interfaces = data['interfaces']
     messages = []
     current_length = 0
     current_message = ""
+    try:
+        if usage_period.lower() == 'hourly':
+            message = ["Hourly Bandwidth Usage",
+                       "------------------------"]
 
-    if usage_period.lower() == 'hourly':
-        message = ["Hourly Bandwidth Usage",
-                   "------------------------"]
-
-        for interface in interfaces:
-            message.append(f"Interface: {interface['name']}")
-            message.append("------------------------")
-
-            traffic = interface.get('traffic', {}).get('hour', [])
-
-            for hour in traffic:
-                year = hour['date']['year']
-                month = hour['date']['month']
-                day = hour['date']['day']
-                hour_number = hour['time']['hour']
-                minute_number = hour['time']['minute']
-                received = hour['rx']
-                sent = hour['tx']
-                total = received + sent
-
-                message.append(f"Date: {year}-{month}-{day}")
-                message.append(f"Time: {hour_number}:{minute_number}")
-                message.append(f"Received: {sizeof_fmt(received)}")
-                message.append(f"Sent: {sizeof_fmt(sent)}")
-                message.append(f"Total: {sizeof_fmt(total)}")
+            for interface in interfaces:
+                message.append(f"Interface: {interface['name']}")
                 message.append("------------------------")
 
-                if current_length + len('\n' + '\n'.join(message)) > max_length:
-                    # Truncate the current message and add it to the list
-                    messages.append(''.join(current_message))
-                    current_message = ""
-                    current_length = 0
+                traffic = interface.get('traffic', {}).get('hour', [])
 
-                current_message += '\n' + '\n'.join(message)
-                current_length += len(current_message)
-                message = []
-        if current_message:
-            messages.append(current_message)
-        return messages
+                for hour in traffic:
+                    year = hour['date']['year']
+                    month = hour['date']['month']
+                    day = hour['date']['day']
+                    hour_number = hour['time']['hour']
+                    minute_number = hour['time']['minute']
+                    received = hour['rx']
+                    sent = hour['tx']
+                    total = received + sent
 
-    if any([x == usage_period.lower() for x in ['daily', 'top']]):
+                    message.append(f"Date: {year}-{month}-{day}")
+                    message.append(f"Time: {hour_number}:{minute_number}")
+                    message.append(f"Received: {sizeof_fmt(received)}")
+                    message.append(f"Sent: {sizeof_fmt(sent)}")
+                    message.append(f"Total: {sizeof_fmt(total)}")
+                    message.append("------------------------")
 
-        message = [f"{usage_period.title()} Bandwidth Usage",
-                   "------------------------"]
+                    if current_length + len('\n' + '\n'.join(message)) > max_length:
+                        # Truncate the current message and add it to the list
+                        messages.append(''.join(current_message))
+                        current_message = ""
+                        current_length = 0
 
-        for interface in interfaces:
-            message.append(f"Interface: {interface['name']}")
-            message.append("------------------------")
+                    current_message += '\n' + '\n'.join(message)
+                    current_length += len(current_message)
+                    message = []
+            if current_message:
+                messages.append(current_message)
+            return messages
 
-            traffic = interface.get('traffic', {}).get('day', [])
+        if any([x == usage_period.lower() for x in ['daily', 'top']]):
 
-            for day in traffic:
-                date = f"{day['date']['year']}-{day['date']['month']}-{day['date']['day']}"
-                received = day['rx']
-                sent = day['tx']
-                total = received + sent
+            message = [f"{usage_period.title()} Bandwidth Usage",
+                       "------------------------"]
 
-                message.append(f"Date: {date}")
-                message.append(f"Received: {sizeof_fmt(received)}")
-                message.append(f"Sent: {sizeof_fmt(sent)}")
-                message.append(f"Total: {sizeof_fmt(total)}")
+            for interface in interfaces:
+                message.append(f"Interface: {interface['name']}")
                 message.append("------------------------")
 
-                if current_length + len('\n' + '\n'.join(message)) > max_length:
-                    # Truncate the current message and add it to the list
-                    messages.append(''.join(current_message))
-                    current_message = ""
-                    current_length = 0
+                traffic = interface.get('traffic', {}).get('day', [])
 
-                current_message += '\n' + '\n'.join(message)
-                current_length += len(current_message)
-                message = []
-            if current_message:
-                messages.append(current_message)
-        return messages
+                for day in traffic:
+                    date = f"{day['date']['year']}-{day['date']['month']}-{day['date']['day']}"
+                    received = day['rx']
+                    sent = day['tx']
+                    total = received + sent
 
-    if usage_period.lower() == 'monthly':
-        message = ["Monthly Bandwidth Usage",
-                   "------------------------"]
+                    message.append(f"Date: {date}")
+                    message.append(f"Received: {sizeof_fmt(received)}")
+                    message.append(f"Sent: {sizeof_fmt(sent)}")
+                    message.append(f"Total: {sizeof_fmt(total)}")
+                    message.append("------------------------")
 
-        for interface in interfaces:
-            message.append(f"Interface: {interface['name']}")
-            message.append("------------------------")
+                    if current_length + len('\n' + '\n'.join(message)) > max_length:
+                        # Truncate the current message and add it to the list
+                        messages.append(''.join(current_message))
+                        current_message = ""
+                        current_length = 0
 
-            traffic = interface.get('traffic', {}).get('month', [])
+                    current_message += '\n' + '\n'.join(message)
+                    current_length += len(current_message)
+                    message = []
+                if current_message:
+                    messages.append(current_message)
+            return messages
 
-            for month in traffic:
-                year = month['date']['year']
-                month_number = month['date']['month']
-                received = month['rx']
-                sent = month['tx']
-                total = received + sent
+        if usage_period.lower() == 'monthly':
+            message = ["Monthly Bandwidth Usage",
+                       "------------------------"]
 
-                message.append(f"Month: {year}-{month_number}")
-                message.append(f"Received: {sizeof_fmt(received)}")
-                message.append(f"Sent: {sizeof_fmt(sent)}")
-                message.append(f"Total: {sizeof_fmt(total)}")
+            for interface in interfaces:
+                message.append(f"Interface: {interface['name']}")
                 message.append("------------------------")
 
-                if current_length + len('\n' + '\n'.join(message)) > max_length:
-                    # Truncate the current message and add it to the list
-                    messages.append(''.join(current_message))
-                    current_message = ""
-                    current_length = 0
+                traffic = interface.get('traffic', {}).get('month', [])
 
-                current_message += '\n' + '\n'.join(message)
-                current_length += len(current_message)
-                message = []
-            if current_message:
-                messages.append(current_message)
-        return messages
+                for month in traffic:
+                    year = month['date']['year']
+                    month_number = month['date']['month']
+                    received = month['rx']
+                    sent = month['tx']
+                    total = received + sent
 
-    if usage_period.lower() == '5m':
-        message = ["Recent 5m Bandwidth Usage",
-                   "------------------------"]
+                    message.append(f"Month: {year}-{month_number}")
+                    message.append(f"Received: {sizeof_fmt(received)}")
+                    message.append(f"Sent: {sizeof_fmt(sent)}")
+                    message.append(f"Total: {sizeof_fmt(total)}")
+                    message.append("------------------------")
 
-        for interface in interfaces:
-            message.append(f"Interface: {interface['name']}")
-            message.append("------------------------")
+                    if current_length + len('\n' + '\n'.join(message)) > max_length:
+                        # Truncate the current message and add it to the list
+                        messages.append(''.join(current_message))
+                        current_message = ""
+                        current_length = 0
 
-            traffic = interface.get('traffic', {}).get('fiveminute', [])
+                    current_message += '\n' + '\n'.join(message)
+                    current_length += len(current_message)
+                    message = []
+                if current_message:
+                    messages.append(current_message)
+            return messages
 
-            for entry in traffic:
-                timestamp = entry["timestamp"]
-                rx = entry["rx"]
-                tx = entry["tx"]
-                time_str = f"{timestamp // 3600:02d}:{(timestamp % 3600) // 60:02d}"
-                bandwidth_str = f"RX: {sizeof_fmt(rx)} bytes, TX: {sizeof_fmt(tx)} bytes"
-                message.append(f"{time_str} - {bandwidth_str}")
+        if usage_period.lower() == '5m':
+            message = ["Recent 5m Bandwidth Usage",
+                       "------------------------"]
 
-                if current_length + len('\n' + '\n'.join(message)) > max_length:
-                    # Truncate the current message and add it to the list
-                    messages.append(''.join(current_message))
-                    current_message = ""
-                    current_length = 0
-                current_message += '\n' + '\n'.join(message)
-                current_length += len(current_message)
-                message = []
-            if current_message:
-                messages.append(current_message)
-        return messages
+            for interface in interfaces:
+                message.append(f"Interface: {interface['name']}")
+                message.append("------------------------")
+
+                traffic = interface.get('traffic', {}).get('fiveminute', [])
+
+                for entry in traffic:
+                    timestamp = entry["timestamp"]
+                    rx = entry["rx"]
+                    tx = entry["tx"]
+                    time_str = f"{timestamp // 3600:02d}:{(timestamp % 3600) // 60:02d}"
+                    bandwidth_str = f"RX: {sizeof_fmt(rx)} bytes, TX: {sizeof_fmt(tx)} bytes"
+                    message.append(f"{time_str} - {bandwidth_str}")
+
+                    if current_length + len('\n' + '\n'.join(message)) > max_length:
+                        # Truncate the current message and add it to the list
+                        messages.append(''.join(current_message))
+                        current_message = ""
+                        current_length = 0
+                    current_message += '\n' + '\n'.join(message)
+                    current_length += len(current_message)
+                    message = []
+                if current_message:
+                    messages.append(current_message)
+            return messages
+    except Exception as e:
+        logger.exception("Error formatting bandwidth usage", exc_info=True)
+        logger.error(e)
+        return
 
 
 async def get_random_password():
@@ -226,17 +231,28 @@ async def shell_exec(shell_command, **kwargs):
     :return: process
     """
     logger.info('executing: %s', shell_command)
-    process = await asyncio.create_subprocess_shell(shell_command, **kwargs)
-    return await process.wait()
+    try:
+        process = await asyncio.create_subprocess_shell(shell_command, **kwargs)
+        return await process.wait()
+        return
+    except Exception as e:
+        logger.exception('Error executing: %s', shell_command, exc_info=True)
+        logger.error(e)
+        return
 
 
 async def shell_exec_stdout(command):
     logger.info('Executing command: %', command)
-    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
-                                                    stderr=asyncio.subprocess.PIPE)
-    stdout, _ = await process.communicate()
-    clean_stdout = stdout.decode().strip()
-    return clean_stdout
+    try:
+        process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                        stderr=asyncio.subprocess.PIPE)
+        stdout, _ = await process.communicate()
+        clean_stdout = stdout.decode().strip()
+        return clean_stdout
+    except Exception as e:
+        logger.exception('Error executing: %s', command, exc_info=True)
+        logger.error(e)
+        return
 
 
 async def shell_exec_stdout_lines(command: str, oneline: bool = False) -> Union[list, str]:
@@ -246,20 +262,22 @@ async def shell_exec_stdout_lines(command: str, oneline: bool = False) -> Union[
     :param oneline: True if oneline
     :return:
     """
-    logger.info("Running: %s", command)
+    logger.info("Executing command: %s", command)
+    try:
+        process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
+        if oneline:
+            data = await process.stdout.readline()
+            line = data.decode('ascii').strip()
+            await process.wait()
+            return line
 
-    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
-
-    if oneline:
-        data = await process.stdout.readline()
-        line = data.decode('ascii').strip()
-        await process.wait()
-        return line
-
-    output_bytes, _ = await process.communicate()
-
-    lines_decoded = [line.decode() for line in output_bytes.splitlines()]
-    return lines_decoded
+        output_bytes, _ = await process.communicate()
+        lines_decoded = [line.decode() for line in output_bytes.splitlines()]
+        return lines_decoded
+    except Exception as e:
+        logger.exception("Error executing: %s", command, exc_info=True)
+        logger.error(e)
+        return
 
 
 async def change_banner(banner):
