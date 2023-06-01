@@ -393,15 +393,15 @@ async def get_hourly_bandwidth():
 
 async def get_bandwidth(perioud):
     if perioud == 'hourly':
-        return shell_exec_stdout(command='/usr/bin/vnstat --json h')
+        return await shell_exec_stdout(command='/usr/bin/vnstat --json h')
     elif perioud == 'daily':
-        return shell_exec_stdout(command='/usr/bin/vnstat --json d')
+        return await shell_exec_stdout(command='/usr/bin/vnstat --json d')
     elif perioud == 'monthly':
-        return shell_exec_stdout(command='/usr/bin/vnstat --json m')
+        return await shell_exec_stdout(command='/usr/bin/vnstat --json m')
     elif perioud == '5m':
-        return shell_exec_stdout(command='/usr/bin/vnstat -5 --json')
+        return await shell_exec_stdout(command='/usr/bin/vnstat -5 --json')
     elif perioud == 'top':
-        return shell_exec_stdout(command='/usr/bin/vnstat --top --json')
+        return await shell_exec_stdout(command='/usr/bin/vnstat --top --json')
 
 
 async def get_available_interfaces():
@@ -452,11 +452,13 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         if any([x == args[0].lower() for x in ['hourly', 'daily', 'monthly', 'top', '5m']]):
             bandwidth_usage = await get_bandwidth(args[0].lower())
-            formatted_output_messages = format_bandwidth_usage(bandwidth_usage, 'daily')
+            formatted_output_messages = format_bandwidth_usage(bandwidth_usage, args[0].lower())
             for formatted_output_message in formatted_output_messages:
                 await update.message.reply_text('<pre>' + formatted_output_message + '</pre>',
                                                 parse_mode='html')
-            return
+        else:
+            await context.bot.send_message(chat_id=update.effective_chat.id,
+                                           text='Usage: /vnstat arg [daily | monthly | hourly | top | 5m ]')
 
 
 async def reboot(update: Update, context: ContextTypes.DEFAULT_TYPE):
