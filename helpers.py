@@ -316,7 +316,7 @@ async def shell_exec_stdout_lines(command: str, oneline: bool = False) -> Union[
         if oneline:
             data = await process.stdout.readline()
             line = data.decode('ascii').strip()
-            stderr = await process.stderr.readline()
+            stderr = await process.stderr.read()
             await process.wait()
             logger.info('executed: %s \nstderr: %s \nstdout: %s \n', command, stderr.decode().strip(), line)
             return line
