@@ -1,14 +1,16 @@
+import asyncio
 import json
 import logging
 import random
 import string
 from logging import Logger
+from typing import Union
 
 # <editor-fold desc="Logger configuration">
 logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
 logger: Logger = logging.getLogger(__name__)
 
-fileHandler = logging.FileHandler(f"{'/var/log'}/{'ptb.log'}.log")
+fileHandler = logging.FileHandler(f"{'/var/log'}/{'ptb.log'}")
 fileHandler.setFormatter(logFormatter)
 logger.addHandler(fileHandler)
 
@@ -203,3 +205,44 @@ async def get_random_password():
     characters = string.ascii_letters + string.digits + string.punctuation
     pw_template = ''.join(random.choice(characters) for i in range(8))
     return pw_template
+
+
+async def shell_exec(shell_command, **kwargs):
+    """
+    execute shell command
+    :param shell_command: command to be executed
+    :param kwargs:
+    :return: process
+    """
+    logger.info('executing: %s', shell_command)
+    process = await asyncio.create_subprocess_shell(shell_command, **kwargs)
+    return await process.wait()
+
+
+async def shell_exec_stdout(command: str, oneline: bool = False) -> Union[list, str]:
+    """
+
+    :param command: command to execute
+    :param oneline: True if oneline
+    :return:
+    """
+    logger.info("Running: %s", command)
+
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
+
+    if oneline:
+        data = await process.stdout.readline()
+        line = data.decode('ascii').strip()
+        await process.wait()
+        return line
+
+    output_bytes, _ = await process.communicate()
+
+    lines_decoded = [line.decode() for line in output_bytes.splitlines()]
+    return lines_decoded
+
+
+async def change_banner(banner):
+    with open('/etc/dropbear/banner.dat', 'w') as f:
+        f.write(banner)
+    await shell_exec('/usr/bin/sudo /usr/bin/systemctl restart dropbear.service')
