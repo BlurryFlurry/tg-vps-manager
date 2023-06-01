@@ -312,7 +312,7 @@ async def shell_exec_stdout_lines(command: str, oneline: bool = False) -> Union[
     logger.info("Executing command: %s", command)
     try:
         events.shell_exec_stdout_lines_before(command)
-        process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
+        process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         if oneline:
             data = await process.stdout.readline()
             line = data.decode('ascii').strip()
