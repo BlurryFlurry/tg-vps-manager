@@ -442,6 +442,12 @@ async def vnstat_add_interface(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Show bandwidth usage report
+    :param update:
+    :param context:
+    :return:
+    """
     user_id = update.effective_user.id
     command_name = '/vnstat'
     if await assert_can_run_command(command_name, user_id, context):
