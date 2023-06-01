@@ -7,21 +7,19 @@ from logging import Logger
 from typing import Union
 
 # <editor-fold desc="Logger configuration">
-logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
 logger: Logger = logging.getLogger(__name__)
 
-fileHandler = logging.FileHandler(f"{'/var/log'}/{'ptb.log'}")
+logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s] [%(name)s]  %(message)s")
+logger.setLevel(logging.INFO)
+
+fileHandler = logging.FileHandler('/var/log/ptb.log')
 fileHandler.setFormatter(logFormatter)
 logger.addHandler(fileHandler)
 
 consoleHandler = logging.StreamHandler()
 consoleHandler.setFormatter(logFormatter)
 logger.addHandler(consoleHandler)
-
-logging.basicConfig(
-    format='%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s',
-    level=logging.INFO
-)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 # </editor-fold>
@@ -38,6 +36,19 @@ def sizeof_fmt(num, suffix="B"):
             return f"{num:3.1f}{unit}{suffix}"
         num /= 1024.0
     return f"{num:.1f}Yi{suffix}"
+
+
+async def get_bandwidth_data(period):
+    if period == 'hourly':
+        return await shell_exec_stdout(command='/usr/bin/vnstat --json h')
+    elif period == 'daily':
+        return await shell_exec_stdout(command='/usr/bin/vnstat --json d')
+    elif period == 'monthly':
+        return await shell_exec_stdout(command='/usr/bin/vnstat --json m')
+    elif period == '5m':
+        return await shell_exec_stdout(command='/usr/bin/vnstat -5 --json')
+    elif period == 'top':
+        return await shell_exec_stdout(command='/usr/bin/vnstat --top --json')
 
 
 def format_bandwidth_usage(stats, usage_period, max_length=4084):
@@ -98,7 +109,7 @@ def format_bandwidth_usage(stats, usage_period, max_length=4084):
             messages.append(current_message)
         return messages
 
-    if any([x in usage_period.lower() for x in ['daily', 'top']]):
+    if any([x == usage_period.lower() for x in ['daily', 'top']]):
 
         message = [f"{usage_period.title()} Bandwidth Usage",
                    "------------------------"]
@@ -219,7 +230,15 @@ async def shell_exec(shell_command, **kwargs):
     return await process.wait()
 
 
-async def shell_exec_stdout(command: str, oneline: bool = False) -> Union[list, str]:
+async def shell_exec_stdout(command):
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.PIPE)
+    stdout, _ = await process.communicate()
+    clean_stdout = stdout.decode().strip()
+    return clean_stdout
+
+
+async def shell_exec_stdout_lines(command: str, oneline: bool = False) -> Union[list, str]:
     """
 
     :param command: command to execute

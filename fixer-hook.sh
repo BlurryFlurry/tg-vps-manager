@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -xv
 ptb_service_user=$(cat "$HOME"/.config/ptb-service-user)
-release=$2
+old_release=$2
 if [ -z "$2" ]
   then
-    release=$(cat /home/"$ptb_service_user"/bot/release-id.txt)
+    old_release=$(cat /home/"$ptb_service_user"/bot/release-id.txt)
 fi
 
 # Set Github repository details
@@ -26,11 +26,18 @@ sudo -u $ptb_service_user git pull --tags "https://github.com/$GITHUB_USER/$REPO
 chown $ptb_service_user:$ptb_service_user -R .
 
 # install vnstat if release ID is greater than 26
-if [ "$release" -gt 26 ]
+if [ "$old_release" -gt 26 ]
 then
     echo "Installing vnstat"
     sudo apt-get install -y vnstat
     sudo systemctl enable vnstat
     sudo systemctl start vnstat
     echo "vnstat installed"
+elif [ "$old_release" -gt 29 ]; then
+  # install requirements for release >29
+    echo "Installing requirements"
+    source /home/"$ptb_service_user"/bot/venv/bin/activate
+    sudo -u $ptb_service_user /home/"$ptb_service_user"/bot/venv/bin/python -m pip install --upgrade pip
+    sudo -u $ptb_service_user /home/"$ptb_service_user"/bot/venv/bin/python -m pip install --upgrade -r requirements.txt
+
 fi

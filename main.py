@@ -2,14 +2,14 @@
 import asyncio
 import html
 import json
-from helpers import logger, shell_exec, change_banner, shell_exec_stdout
+from helpers import logger, shell_exec, change_banner, shell_exec_stdout_lines, shell_exec_stdout, get_bandwidth_data
 import re
 import sqlite3
-from datetime import datetime
 from os import environ
-from typing import Union
 from helpers import get_random_password
 from helpers import sizeof_fmt, format_bandwidth_usage
+
+# from events import Events
 
 conn = sqlite3.connect('tgbot.db')
 c = conn.cursor()
@@ -196,8 +196,8 @@ async def chpass(update: Update, context: ContextTypes.DEFAULT_TYPE):
             created_time = await get_user_create_date(user['username'])
             expiry_date = await get_user_expiry_date(user['username'])
             hostname = await get_public_ip()
-            logger.info('created: ' + str(created_time))
-            logger.info('expiry: ' + str(expiry_date))
+            logger.info('created: %s', str(created_time))
+            logger.info('expiry: %s', str(expiry_date))
 
             await context.bot.send_message(text=f'''
 <pre>
@@ -281,6 +281,35 @@ async def expire(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return MAX_LOGINS
 
 
+async def release(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id == int(environ.get('grant_perm_id')):  # shows debug info only to the admin
+        with open('release-id.txt', 'r') as f:
+            release_id = f.read()
+        await update.message.reply_text(release_id)
+
+    else:
+        await context.bot.send_message(chat_id=update.effective_chat.id,
+                                       text='Sorry, you do not have permission to use this command.')
+
+
+async def logfile(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id == int(environ.get('grant_perm_id')):  # shows debug info only to the admin
+        args = context.args
+        if len(args) == 0:
+            with open('/var/log/ptb.log', 'rb') as f:
+                await update.message.chat.send_document(f)
+        else:
+            if args[0].lower() == 'clear':
+                open('/var/log/ptb.log', 'w').close()
+                await update.message.reply_text('Log file cleared')
+
+    else:
+        await context.bot.send_message(chat_id=update.effective_chat.id,
+                                       text='Sorry, you do not have permission to use this command.')
+
+
 async def skip_expire(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_expire = update.message.text
     logger.info('user expire sets to {:>8} %s' % user_expire)
@@ -315,11 +344,8 @@ async def skip_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-
-
-
 async def get_service_processes():
-    processes = await shell_exec_stdout(
+    processes = await shell_exec_stdout_lines(
         """/usr/bin/sudo /usr/bin/ss -ntlp | /usr/bin/awk '!/Peer/ {split($4, a, ":"); sub("users:", "", $6); gsub(",", " | ", $6); gsub("\\)\\)", "", $6); gsub("\\\(\\\(", "", $6); print "Port:" a[length(a)] " | " $6 }'""")
     return processes
 
@@ -333,8 +359,8 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         service_processes = str()
         for line in service_processes_list:
             service_processes += html.escape(line) + '\n'
-        server_load = await shell_exec_stdout("/usr/bin/uptime | /usr/bin//awk -F: '{ print $5 }'", True)
-        uptime = await shell_exec_stdout('/usr/bin/uptime --pretty', True)
+        server_load = await shell_exec_stdout_lines("/usr/bin/uptime | /usr/bin//awk -F: '{ print $5 }'", True)
+        uptime = await shell_exec_stdout_lines('/usr/bin/uptime --pretty', True)
         server_ip = await get_public_ip()
         await context.bot.send_message(text=f'''
         <pre>
@@ -361,116 +387,14 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # function to get hourly bandwidth usage
-async def get_hourly_bandwidth():
-    command = '/usr/bin/vnstat --json h'
-    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
-                                                    stderr=asyncio.subprocess.PIPE)
-    stdout, _ = await process.communicate()
-    return stdout.decode().strip()
 
 
-# function to get daily bandwidth usage
-async def get_daily_bandwidth():
-    command = '/usr/bin/vnstat --json d'
-    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
-                                                    stderr=asyncio.subprocess.PIPE)
-    stdout, _ = await process.communicate()
-    return stdout.decode().strip()
-
-
-async def get_monthly_bandwidth():
-    """
-    Function to get monthly bandwidth usage
-    :return:
-    """
-    command = '/usr/bin/vnstat --json m'
-    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
-                                                    stderr=asyncio.subprocess.PIPE)
-    stdout, _ = await process.communicate()
-    return stdout.decode().strip()
-
-
-# function to get recent 5 minutes bandwidth usage
-async def get_recent_5_minutes_bandwidth():
-    command = '/usr/bin/vnstat -5 --json'
-    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
-                                                    stderr=asyncio.subprocess.PIPE)
-    stdout, _ = await process.communicate()
-    return stdout.decode().strip()
-
-
-# function to format recent 5 minutes bandwidth usage
-async def format_recent_5_minutes_bandwidth_usage(usage):
-    data = json.loads(usage)
-    interfaces = data["interfaces"]
-    message = ""
-
-    for interface in interfaces:
-        interface_name = interface["name"]
-        fiveminute = interface["traffic"]["fiveminute"]
-
-        message += f"Interface: {interface_name}\n"
-        message += "Recent 5 minutes' bandwidth usage:\n"
-
-        for entry in fiveminute:
-            timestamp = entry["timestamp"]
-            rx = entry["rx"]
-            tx = entry["tx"]
-            time_str = f"{timestamp // 3600:02d}:{(timestamp % 3600) // 60:02d}"
-            bandwidth_str = f"RX: {sizeof_fmt(rx)} bytes, TX: {sizeof_fmt(tx)} bytes"
-
-            message += f"{time_str} - {bandwidth_str}\n"
-
-        message += "\n"
-
-    return message
-
-
-# function to format hourly bandwidth usage
-
-# function to get top bandwidth usage
-async def get_top_bandwidth():
-    command = '/usr/bin/vnstat --top --json'
-    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
-                                                    stderr=asyncio.subprocess.PIPE)
-    stdout, _ = await process.communicate()
-    return stdout.decode().strip()
-
-
-# function to format  top bandwidth usage
-def format_top_bandwidth_usage(usage):
-    try:
-        data = json.loads(usage)
-    except json.JSONDecodeError:
-        return "Error: Failed to retrieve hourly bandwidth usage data."
-    interfaces = data['interfaces']
-    message = ""
-
-    for interface in interfaces:
-        name = interface['name']
-        traffic = interface['traffic']
-        days = traffic['day']
-
-        message += f"Top Traffic Days - {name}\n"
-        for day in days:
-            date = day['date']
-            rx = day['rx']
-            tx = day['tx']
-            formatted_date = f"{date['year']}-{date['month']}-{date['day']}"
-            formatted_rx = sizeof_fmt(rx)
-            formatted_tx = sizeof_fmt(tx)
-
-            message += f"Date: {formatted_date}\n"
-            message += f"Download: {formatted_rx}\n"
-            message += f"Upload: {formatted_tx}\n\n"
-
-    return message
 
 
 async def get_available_interfaces():
     """function to get available interfaces"""
     command = '/usr/bin/vnstat --iflist'
-    output = await shell_exec_stdout(command, True)
+    output = await shell_exec_stdout_lines(command, True)
     # Parse the output to extract interface names
     if output.startswith("Available interfaces:"):
         interfaces = output.split(":")[1].strip().split()
@@ -505,7 +429,12 @@ async def vnstat_add_interface(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global formatted_output
+    """
+    Show bandwidth usage report
+    :param update:
+    :param context:
+    :return:
+    """
     user_id = update.effective_user.id
     command_name = '/vnstat'
     if await assert_can_run_command(command_name, user_id, context):
@@ -514,41 +443,15 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(chat_id=update.effective_chat.id,
                                            text='Usage: /vnstat arg [daily | monthly | hourly | top | 5m ]')
             return
-        if args[0].lower() == 'daily':
-            bandwidth_usage = await get_daily_bandwidth()
-            formatted_output_messages = format_bandwidth_usage(bandwidth_usage, 'daily')
+        if any([x == args[0].lower() for x in ['hourly', 'daily', 'monthly', 'top', '5m']]):
+            bandwidth_usage = await get_bandwidth_data(args[0].lower())
+            formatted_output_messages = format_bandwidth_usage(bandwidth_usage, args[0].lower())
             for formatted_output_message in formatted_output_messages:
                 await update.message.reply_text('<pre>' + formatted_output_message + '</pre>',
                                                 parse_mode='html')
-            return
-        if args[0].lower() == 'monthly':
-            bandwidth_usage = await get_monthly_bandwidth()
-            formatted_output_messages = format_bandwidth_usage(bandwidth_usage, 'monthly')
-            for formatted_output_message in formatted_output_messages:
-                await update.message.reply_text('<pre>' + formatted_output_message + '</pre>',
-                                                parse_mode='html')
-            return
-        if args[0].lower() == 'hourly':
-            bandwidth_usage = await get_hourly_bandwidth()
-            formatted_output_messages = format_bandwidth_usage(bandwidth_usage, 'hourly')
-            for formatted_output_message in formatted_output_messages:
-                await update.message.reply_text('<pre>' + formatted_output_message + '</pre>',
-                                                parse_mode='html')
-            return
-        if args[0].lower() == 'top':
-            bandwidth_usage = await get_daily_bandwidth()
-            formatted_output_messages = format_bandwidth_usage(bandwidth_usage, 'top')
-            for formatted_output_message in formatted_output_messages:
-                await update.message.reply_text('<pre>' + formatted_output_message + '</pre>',
-                                                parse_mode='html')
-            return
-        if args[0].lower() == '5m':
-            bandwidth_usage = await get_recent_5_minutes_bandwidth()
-            formatted_output_messages = format_bandwidth_usage(bandwidth_usage, '5m')
-            for formatted_output_message in formatted_output_messages:
-                await update.message.reply_text('<pre>' + formatted_output_message + '</pre>',
-                                                parse_mode='html')
-            return
+        else:
+            await context.bot.send_message(chat_id=update.effective_chat.id,
+                                           text='Usage: /vnstat arg [daily | monthly | hourly | top | 5m ]')
 
 
 async def reboot(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -618,6 +521,8 @@ if __name__ == '__main__':
     vnstat_cfg_add_interface_handler = CallbackQueryHandler(vnstat_add_interface)
 
     grant_handler = CommandHandler('grant', grant)
+    logfile_handler = CommandHandler('logfile', logfile)
+    release_handler = CommandHandler('release', release)
     lsusers_handler = CommandHandler('lsusers', lsusers)
     reboot_handler = CommandHandler('reboot', reboot)
     help_handler = CommandHandler('help', help)
@@ -632,6 +537,8 @@ if __name__ == '__main__':
         vnstat_cfg_handler,
         vnstat_cfg_add_interface_handler,
         server_stats_handler,
+        logfile_handler,
+        release_handler,
         vnstat_handler,
         lsusers_handler,
         deluser_handler,
