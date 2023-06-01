@@ -10,7 +10,7 @@ from typing import Union
 logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
 logger: Logger = logging.getLogger(__name__)
 
-fileHandler = logging.FileHandler(f"{'/var/log'}/{'ptb.log'}.log")
+fileHandler = logging.FileHandler(f"{'/var/log'}/{'ptb.log'}")
 fileHandler.setFormatter(logFormatter)
 logger.addHandler(fileHandler)
 
