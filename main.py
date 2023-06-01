@@ -296,8 +296,15 @@ async def release(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def logfile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id == int(environ.get('grant_perm_id')):  # shows debug info only to the admin
-        with open('/var/log/ptb.log', 'rb') as f:
-            await update.message.chat.send_document(f)
+        args = context.args
+        if len(args) > 0:
+            with open('/var/log/ptb.log', 'rb') as f:
+                await update.message.chat.send_document(f)
+        else:
+            if args[0] == 'clear':
+                open('/var/log/ptb.log', 'w').close()
+                await update.message.reply_text('Log file cleared')
+
     else:
         await context.bot.send_message(chat_id=update.effective_chat.id,
                                        text='Sorry, you do not have permission to use this command.')
