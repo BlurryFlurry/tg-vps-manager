@@ -18,7 +18,7 @@ logger: Logger = logging.getLogger(__name__)
 logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s] [%(name)s]  %(message)s")
 logger.setLevel(logging.INFO)
 
-fileHandler = RotatingFileHandler('/var/log/ptb.log', mode='a', maxBytes=5*1024*1024, backupCount=2, encoding=None)
+fileHandler = RotatingFileHandler('/var/log/ptb.log', mode='a', maxBytes=5 * 1024 * 1024, backupCount=2, encoding=None)
 fileHandler.setFormatter(logFormatter)
 logger.addHandler(fileHandler)
 
@@ -260,7 +260,7 @@ async def fetch_latest_version_tag():
                     logger.error("Error occurred while fetching tags.")
                     return None
         except Exception as e:
-            logger.exception("Error occurred while fetching tags.",  exc_info=True)
+            logger.exception("Error occurred while fetching tags.", exc_info=True)
             return None
 
 
@@ -274,9 +274,12 @@ async def shell_exec(command, **kwargs):
     logger.info('executing: %s', command)
     try:
         events.shell_exec_before(command)
-        process = await asyncio.create_subprocess_shell(command, **kwargs)
-        return_code = await process.wait()
-        logger.info('executed: %s,  return code: %s', command, return_code)
+        process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                        stderr=asyncio.subprocess.PIPE, **kwargs)
+        stdout, stderr = await process.communicate()
+        return_code = process.returncode
+        logger.info('executed: %s \nstderr: %s \nstdout: %s \n', command, stderr.decode().strip(),
+                    stdout.decode().strip())
         events.shell_exec_after(command)
         return return_code
     except Exception as e:
@@ -312,7 +315,8 @@ async def shell_exec_stdout_lines(command: str, oneline: bool = False) -> Union[
     logger.info("Executing command: %s", command)
     try:
         events.shell_exec_stdout_lines_before(command)
-        process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+                                                        stderr=asyncio.subprocess.PIPE)
         if oneline:
             data = await process.stdout.readline()
             line = data.decode('ascii').strip()
