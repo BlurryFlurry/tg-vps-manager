@@ -5,6 +5,9 @@ import random
 import string
 from logging import Logger
 from typing import Union
+from events import Events
+
+events = Events()
 
 # <editor-fold desc="Logger configuration">
 logger: Logger = logging.getLogger(__name__)
@@ -232,9 +235,11 @@ async def shell_exec(shell_command, **kwargs):
     """
     logger.info('executing: %s', shell_command)
     try:
+        events.shell_exec_before(shell_command)
         process = await asyncio.create_subprocess_shell(shell_command, **kwargs)
-        return await process.wait()
-        return
+        return_code = await process.wait()
+        events.shell_exec_after(shell_command)
+        return return_code
     except Exception as e:
         logger.exception('Error executing: %s', shell_command, exc_info=True)
         logger.error(e)
@@ -242,11 +247,13 @@ async def shell_exec(shell_command, **kwargs):
 
 
 async def shell_exec_stdout(command):
-    logger.info('Executing command: %', command)
+    logger.info('Executing command: %s', command)
     try:
+        events.shell_exec_stdout_before(command)
         process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
                                                         stderr=asyncio.subprocess.PIPE)
         stdout, _ = await process.communicate()
+        events.shell_exec_stdout_after(command)
         clean_stdout = stdout.decode().strip()
         return clean_stdout
     except Exception as e:
@@ -264,6 +271,7 @@ async def shell_exec_stdout_lines(command: str, oneline: bool = False) -> Union[
     """
     logger.info("Executing command: %s", command)
     try:
+        events.shell_exec_stdout_lines_before(command)
         process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
         if oneline:
             data = await process.stdout.readline()
@@ -272,6 +280,7 @@ async def shell_exec_stdout_lines(command: str, oneline: bool = False) -> Union[
             return line
 
         output_bytes, _ = await process.communicate()
+        events.shell_exec_stdout_lines_after(command)
         lines_decoded = [line.decode() for line in output_bytes.splitlines()]
         return lines_decoded
     except Exception as e:
@@ -282,6 +291,8 @@ async def shell_exec_stdout_lines(command: str, oneline: bool = False) -> Union[
 
 async def change_banner(banner):
     logger.info('Setting new banner...')
-    with open('/etc/dropbear/banner.dat', 'w') as f:
+    events.banner_change_before(banner)
+    with open('/etc/dropbear/banner.dat', 'w+') as f:
         f.write(banner)
+    events.banner_change_after(banner)
     await shell_exec('/usr/bin/sudo /usr/bin/systemctl restart dropbear.service')
