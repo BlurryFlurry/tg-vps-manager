@@ -231,6 +231,7 @@ async def shell_exec(shell_command, **kwargs):
 
 
 async def shell_exec_stdout(command):
+    logger.info('Executing command: %', command)
     process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
                                                     stderr=asyncio.subprocess.PIPE)
     stdout, _ = await process.communicate()
@@ -262,6 +263,7 @@ async def shell_exec_stdout_lines(command: str, oneline: bool = False) -> Union[
 
 
 async def change_banner(banner):
+    logger.info('Setting new banner...')
     with open('/etc/dropbear/banner.dat', 'w') as f:
         f.write(banner)
     await shell_exec('/usr/bin/sudo /usr/bin/systemctl restart dropbear.service')

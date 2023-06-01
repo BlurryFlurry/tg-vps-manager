@@ -389,8 +389,6 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # function to get hourly bandwidth usage
 
 
-
-
 async def get_available_interfaces():
     """function to get available interfaces"""
     command = '/usr/bin/vnstat --iflist'
