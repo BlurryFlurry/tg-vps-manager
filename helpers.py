@@ -7,22 +7,19 @@ from logging import Logger
 from typing import Union
 
 # <editor-fold desc="Logger configuration">
-logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
 logger: Logger = logging.getLogger(__name__)
 
-fileHandler = logging.FileHandler(f"{'/var/log'}/{'ptb.log'}")
+logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s] [%(name)s]  %(message)s")
+logger.setLevel(logging.INFO)
+
+fileHandler = logging.FileHandler('/var/log/ptb.log')
 fileHandler.setFormatter(logFormatter)
 logger.addHandler(fileHandler)
 
 consoleHandler = logging.StreamHandler()
 consoleHandler.setFormatter(logFormatter)
 logger.addHandler(consoleHandler)
-
-logging.basicConfig(
-    format='%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s',
-    level=logging.INFO
-)
-
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # </editor-fold>
 
