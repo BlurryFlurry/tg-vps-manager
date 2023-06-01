@@ -8,7 +8,7 @@ import sqlite3
 from os import environ
 from helpers import get_random_password
 from helpers import sizeof_fmt, format_bandwidth_usage
-from events import Events
+# from events import Events
 
 conn = sqlite3.connect('tgbot.db')
 c = conn.cursor()
