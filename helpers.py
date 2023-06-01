@@ -38,6 +38,19 @@ def sizeof_fmt(num, suffix="B"):
     return f"{num:.1f}Yi{suffix}"
 
 
+async def get_bandwidth_data(period):
+    if period == 'hourly':
+        return await shell_exec_stdout(command='/usr/bin/vnstat --json h')
+    elif period == 'daily':
+        return await shell_exec_stdout(command='/usr/bin/vnstat --json d')
+    elif period == 'monthly':
+        return await shell_exec_stdout(command='/usr/bin/vnstat --json m')
+    elif period == '5m':
+        return await shell_exec_stdout(command='/usr/bin/vnstat -5 --json')
+    elif period == 'top':
+        return await shell_exec_stdout(command='/usr/bin/vnstat --top --json')
+
+
 def format_bandwidth_usage(stats, usage_period, max_length=4084):
     """
     format bandwidth usage data into a list of strings that suitable for telegram bot message

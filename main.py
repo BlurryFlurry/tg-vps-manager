@@ -2,7 +2,7 @@
 import asyncio
 import html
 import json
-from helpers import logger, shell_exec, change_banner, shell_exec_stdout_lines, shell_exec_stdout
+from helpers import logger, shell_exec, change_banner, shell_exec_stdout_lines, shell_exec_stdout, get_bandwidth_data
 import re
 import sqlite3
 from os import environ
@@ -387,21 +387,8 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # function to get hourly bandwidth usage
-async def get_hourly_bandwidth():
-    return shell_exec_stdout(command='/usr/bin/vnstat --json h')
 
 
-async def get_bandwidth(perioud):
-    if perioud == 'hourly':
-        return await shell_exec_stdout(command='/usr/bin/vnstat --json h')
-    elif perioud == 'daily':
-        return await shell_exec_stdout(command='/usr/bin/vnstat --json d')
-    elif perioud == 'monthly':
-        return await shell_exec_stdout(command='/usr/bin/vnstat --json m')
-    elif perioud == '5m':
-        return await shell_exec_stdout(command='/usr/bin/vnstat -5 --json')
-    elif perioud == 'top':
-        return await shell_exec_stdout(command='/usr/bin/vnstat --top --json')
 
 
 async def get_available_interfaces():
@@ -457,7 +444,7 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                            text='Usage: /vnstat arg [daily | monthly | hourly | top | 5m ]')
             return
         if any([x == args[0].lower() for x in ['hourly', 'daily', 'monthly', 'top', '5m']]):
-            bandwidth_usage = await get_bandwidth(args[0].lower())
+            bandwidth_usage = await get_bandwidth_data(args[0].lower())
             formatted_output_messages = format_bandwidth_usage(bandwidth_usage, args[0].lower())
             for formatted_output_message in formatted_output_messages:
                 await update.message.reply_text('<pre>' + formatted_output_message + '</pre>',
