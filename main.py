@@ -9,8 +9,8 @@ import sqlite3
 from os import environ
 from helpers import get_random_password
 from helpers import format_bandwidth_usage
-from helpers import events
-
+from helpers import events, fetch_latest_version_tag, get_local_version_tag
+from datetime import timedelta
 
 conn = sqlite3.connect('tgbot.db')
 c = conn.cursor()
@@ -25,6 +25,7 @@ from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHan
 
 USERNAME, EXPIRE, MAX_LOGINS = range(3)
 user = dict()
+notified_updates = []
 
 
 async def assert_can_run_command(command_name: str, user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
@@ -461,6 +462,20 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                            text='Usage: /vnstat arg [daily | monthly | hourly | top | 5m ]')
 
 
+async def check_for_updates(context: ContextTypes.DEFAULT_TYPE):
+    chat_id = int(environ.get('grant_perm_id'))
+    logger.info('checking updates')
+    latest_tag = await fetch_latest_version_tag()
+    local_tag = await get_local_version_tag()
+    logger.info('latest version tag: %s,  local version tag: %s', latest_tag, local_tag)
+    if local_tag != latest_tag and latest_tag not in notified_updates:
+        logger.info('Sending update notification')
+        await context.bot.send_message(chat_id=chat_id,
+                                       text=f'New version available: {latest_tag}')
+        logger.info('update notification sent')
+        notified_updates.append(latest_tag)
+
+
 async def reboot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     full_name = update.effective_user.full_name
@@ -556,4 +571,5 @@ if __name__ == '__main__':
         start_handler,
     ])
 
+    application.job_queue.run_repeating(check_for_updates, interval=timedelta(minutes=45), first=0)
     application.run_polling()
