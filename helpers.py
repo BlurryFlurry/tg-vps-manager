@@ -207,6 +207,12 @@ async def get_random_password():
 
 
 async def shell_exec(shell_command, **kwargs):
+    """
+    execute shell command
+    :param shell_command: command to be executed
+    :param kwargs:
+    :return: process
+    """
     logger.info('executing: %s', shell_command)
     process = await asyncio.create_subprocess_shell(shell_command, **kwargs)
     return await process.wait()
