@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import asyncio
 import html
-import json
 import logging
 
 from helpers import logger, shell_exec, change_banner, shell_exec_stdout_lines, shell_exec_stdout, get_bandwidth_data

@@ -4,8 +4,11 @@ import logging
 import random
 import string
 from logging import Logger
+from logging.handlers import RotatingFileHandler
 from typing import Union
 from events import Events
+import aiohttp
+import os
 
 events = Events()
 
@@ -224,6 +227,41 @@ async def get_random_password():
     characters = string.ascii_letters + string.digits + string.punctuation
     pw_template = ''.join(random.choice(characters) for i in range(8))
     return pw_template
+
+
+async def get_local_version_tag():
+    """
+    return local installed repository version tag
+    """
+    home = os.path.expanduser('~')
+    local_tag_file = os.path.join(home, '.config', 'ptb-service-version.txt')
+    with open(local_tag_file, 'r') as f:
+        return f.read().strip()
+
+
+async def fetch_latest_version_tag():
+    """
+    :returns: latest version tag or none if not found
+    :rtype string
+    """
+    repository_owner = 'BlurryFlurry'
+    repository_name = 'tg-vps-manager'
+    async with aiohttp.ClientSession() as session:
+        url = f'https://api.github.com/repos/{repository_owner}/{repository_name}/tags'
+        try:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    tags = await response.json()
+                    if tags:
+                        return tags[0]['name']
+                    else:
+                        return None
+                else:
+                    logger.error("Error occurred while fetching tags.")
+                    return None
+        except Exception as e:
+            logger.exception("Error occurred while fetching tags.",  exc_info=True)
+            return None
 
 
 async def shell_exec(shell_command, **kwargs):
