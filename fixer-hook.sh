@@ -33,11 +33,11 @@ then
     sudo systemctl enable vnstat
     sudo systemctl start vnstat
     echo "vnstat installed"
-elif [ "$old_release" -gt 30 ]; then
-  # install requirements for release >30
+elif [ "$old_release" -gt 29 ]; then
+  # install requirements for release >29
     echo "Installing requirements"
-    source /home/$ptb_service_user/bot/venv/bin/activate
-    sudo -u $ptb_service_user python -m pip install --upgrade pip
-    sudo -u $ptb_service_user python -m pip install --upgrade -r requirements.txt
+    source /home/"$ptb_service_user"/bot/venv/bin/activate
+    sudo -u $ptb_service_user /home/"$ptb_service_user"/bot/venv/bin/python -m pip install --upgrade pip
+    sudo -u $ptb_service_user /home/"$ptb_service_user"/bot/venv/bin/python -m pip install --upgrade -r requirements.txt
 
 fi
