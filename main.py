@@ -571,5 +571,5 @@ if __name__ == '__main__':
         start_handler,
     ])
 
-    application.job_queue.run_repeating(check_for_updates, interval=timedelta(minutes=45), first=0)
+    application.job_queue.run_repeating(check_for_updates, interval=timedelta(minutes=15), first=0)
     application.run_polling()
