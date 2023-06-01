@@ -8,6 +8,7 @@ import sqlite3
 from os import environ
 from helpers import get_random_password
 from helpers import sizeof_fmt, format_bandwidth_usage
+
 # from events import Events
 
 conn = sqlite3.connect('tgbot.db')
@@ -287,6 +288,16 @@ async def release(update: Update, context: ContextTypes.DEFAULT_TYPE):
             release_id = f.read()
         await update.message.reply_text(release_id)
 
+    else:
+        await context.bot.send_message(chat_id=update.effective_chat.id,
+                                       text='Sorry, you do not have permission to use this command.')
+
+
+async def logfile(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id == int(environ.get('grant_perm_id')):  # shows debug info only to the admin
+        with open('/var/log/ptb.log', 'rb') as f:
+            await update.message.chat.send_document(f)
     else:
         await context.bot.send_message(chat_id=update.effective_chat.id,
                                        text='Sorry, you do not have permission to use this command.')
@@ -626,6 +637,7 @@ if __name__ == '__main__':
     vnstat_cfg_add_interface_handler = CallbackQueryHandler(vnstat_add_interface)
 
     grant_handler = CommandHandler('grant', grant)
+    logfile_handler = CommandHandler('logfile', logfile)
     release_handler = CommandHandler('release', release)
     lsusers_handler = CommandHandler('lsusers', lsusers)
     reboot_handler = CommandHandler('reboot', reboot)
@@ -641,6 +653,7 @@ if __name__ == '__main__':
         vnstat_cfg_handler,
         vnstat_cfg_add_interface_handler,
         server_stats_handler,
+        logfile_handler,
         release_handler,
         vnstat_handler,
         lsusers_handler,
