@@ -4,6 +4,7 @@ import logging
 import random
 import string
 from logging import Logger
+from typing import Union
 
 # <editor-fold desc="Logger configuration">
 logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
@@ -216,6 +217,29 @@ async def shell_exec(shell_command, **kwargs):
     logger.info('executing: %s', shell_command)
     process = await asyncio.create_subprocess_shell(shell_command, **kwargs)
     return await process.wait()
+
+
+async def shell_exec_stdout(command: str, oneline: bool = False) -> Union[list, str]:
+    """
+
+    :param command: command to execute
+    :param oneline: True if oneline
+    :return:
+    """
+    logger.info("Running: %s", command)
+
+    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
+
+    if oneline:
+        data = await process.stdout.readline()
+        line = data.decode('ascii').strip()
+        await process.wait()
+        return line
+
+    output_bytes, _ = await process.communicate()
+
+    lines_decoded = [line.decode() for line in output_bytes.splitlines()]
+    return lines_decoded
 
 
 async def change_banner(banner):

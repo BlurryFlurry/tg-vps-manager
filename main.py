@@ -2,7 +2,7 @@
 import asyncio
 import html
 import json
-from helpers import logger, shell_exec, change_banner
+from helpers import logger, shell_exec, change_banner, shell_exec_stdout
 import re
 import sqlite3
 from datetime import datetime
@@ -315,27 +315,7 @@ async def skip_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-async def shell_exec_stdout(command: str, oneline: bool = False) -> Union[list, str]:
-    """
 
-    :param command: command to execute
-    :param oneline: True if oneline
-    :return:
-    """
-    logger.info("Running: %s", command)
-
-    process = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
-
-    if oneline:
-        data = await process.stdout.readline()
-        line = data.decode('ascii').strip()
-        await process.wait()
-        return line
-
-    output_bytes, _ = await process.communicate()
-
-    lines_decoded = [line.decode() for line in output_bytes.splitlines()]
-    return lines_decoded
 
 
 async def get_service_processes():
@@ -574,13 +554,12 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def reboot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     full_name = update.effective_user.full_name
-    log_time = "{:%Y-%m-%d %H:%M:%S%z}".format(datetime.now())
 
     command_name = '/reboot'
     if await assert_can_run_command(command_name, user_id, context):
         await update.message.reply_text(text="rebooting...")
-        await asyncio.create_subprocess_shell(
-            f'echo {log_time}: {full_name} has performed the action: reboot >>{log_file}')
+        logger.info(f'{full_name} has performed the action: reboot ')
+
         await asyncio.create_subprocess_shell('/usr/bin/sudo /usr/sbin/reboot')
 
 
