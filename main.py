@@ -2,7 +2,7 @@
 import asyncio
 import html
 import json
-from helpers import logger
+from helpers import logger, shell_exec
 import re
 import sqlite3
 from datetime import datetime
@@ -130,12 +130,6 @@ async def change_password(user):
     inp = user['password'] + "\n" + user['password'] + "\n"
     inp = inp.encode()
     _ = await process.communicate(input=inp)
-
-
-async def shell_exec(shell_command, **kwargs):
-    logger.info('executing: ' + shell_command)
-    process = await asyncio.create_subprocess_shell(shell_command, **kwargs)
-    return await process.wait()
 
 
 async def lsusers(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import random
@@ -203,3 +204,9 @@ async def get_random_password():
     characters = string.ascii_letters + string.digits + string.punctuation
     pw_template = ''.join(random.choice(characters) for i in range(8))
     return pw_template
+
+
+async def shell_exec(shell_command, **kwargs):
+    logger.info('executing: %s', shell_command)
+    process = await asyncio.create_subprocess_shell(shell_command, **kwargs)
+    return await process.wait()
