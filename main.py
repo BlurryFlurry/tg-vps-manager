@@ -464,7 +464,7 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def check_for_updates(context: ContextTypes.DEFAULT_TYPE):
     chat_id = int(environ.get('grant_perm_id'))
-    logger.info('checking updates')
+    logger.info('Sending heart beat to the upstream')
     latest_tag = await fetch_latest_version_tag()
     local_tag = await get_local_version_tag()
     logger.info('latest version tag: %s,  local version tag: %s', latest_tag, local_tag)
