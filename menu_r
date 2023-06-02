@@ -14,13 +14,14 @@ LOCAL_REPO_DIR="/home/$ptb_service_user/bot"
 # Go to the local directory
 cd "$LOCAL_REPO_DIR" || exit
 
-touch "$HOME"/.config/ptb-service-version.txt
+mkdir -p /home/"$ptb_service_user"/.config/
+touch /home/"$ptb_service_user"/.config/ptb-service-version.txt
 # Get the latest tag from Github
 LATEST_TAG=$(git ls-remote --tags "https://github.com/$GITHUB_USER/$REPO_NAME.git" | awk '{print $2}' | grep -v '{}' | sort -V | tail -n1 | sed 's|refs/tags/||')
 
 # set new update flag
 set_new_update_flag() {
-  if [ ! -f "$HOME/.config/ptb-service-version.txt" ] || [ "$(cat "$HOME"/.config/ptb-service-version.txt)" != "$LATEST_TAG" ]; then
+  if [ ! -f "/home/\"$ptb_service_user\"/.config/ptb-service-version.txt" ] || [ "$(cat /home/"$ptb_service_user"/.config/ptb-service-version.txt)" != "$LATEST_TAG" ]; then
     new_update_flag=" | New update: ${LATEST_TAG}"
   else
     new_update_flag=""
@@ -47,7 +48,7 @@ start_telegram_bot() {
 update_telegram_bot() {
 
   # Check if the latest tag is different from the one stored in the local directory
-  if [ ! -f "$HOME/.config/ptb-service-version.txt" ] || [ "$(cat "$HOME"/.config/ptb-service-version.txt)" != "$LATEST_TAG" ]; then
+  if [ ! -f "/home/\"$ptb_service_user\"/.config/ptb-service-version.txt" ] || [ "$(cat "$HOME"/.config/ptb-service-version.txt)" != "$LATEST_TAG" ]; then
     # backup current release ID notes for trackers in update hooks
     sudo -u $ptb_service_user cp release-id.txt ~/.release-id.old
 
@@ -60,7 +61,7 @@ update_telegram_bot() {
     chown $ptb_service_user:$ptb_service_user -R .
 
     # Store the latest tag in a file in the local directory
-    echo "$LATEST_TAG" >"$HOME/.config/ptb-service-version.txt"
+    echo "$LATEST_TAG" >"/home/$ptb_service_user/.config/ptb-service-version.txt"
     LATEST_TAG=$(git ls-remote --tags "https://github.com/$GITHUB_USER/$REPO_NAME.git" | awk '{print $2}' | grep -v '{}' | sort -V | tail -n1 | sed 's|refs/tags/||')
     username=$ptb_service_user
     curl -sSL -H "Cache-Control: no-cache, no-store, must-revalidate" -H "Expires: 0" -H "Pragma: no-cache" https://raw.githubusercontent.com/BlurryFlurry/dropbear_squid_stunnel_nodejs_proxy_badvpn_install/main/perm_fixer.sh?token="$(date +%s)" | sh -s -- $username
