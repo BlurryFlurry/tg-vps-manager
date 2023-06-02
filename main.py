@@ -57,8 +57,11 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                     '/vnstat - check bandwidth usage\n'
                                     '/vnstat_cfg - bandwidth monitor configuration\n\n'
                                     '/reboot - restart the server\n\n' +
+                                    'Found a bug? Find your /release id and /logfile \n'
+                                    'and forward it to <a href="tg://user?id=5870625310">me</a>.\n'
+                                    'You can also report it to <a href="https://github.com/BlurryFlurry/dig-my-tunnel/issues">github</a>.\n\n'
                                     '<a href="tg://user?id=5870625310">💠💠💠Coded by Ryan💠💠💠</a>'
-                                    '', parse_mode='html')
+                                    '', parse_mode='html', disable_web_page_preview=True)
 
 
 async def cancel_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
