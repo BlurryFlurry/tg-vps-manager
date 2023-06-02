@@ -21,7 +21,7 @@ LATEST_TAG=$(git ls-remote --tags "https://github.com/$GITHUB_USER/$REPO_NAME.gi
 
 # set new update flag
 set_new_update_flag() {
-  if [ ! -f "/home/\"$ptb_service_user\"/.config/ptb-service-version.txt" ] || [ "$(cat /home/"$ptb_service_user"/.config/ptb-service-version.txt)" != "$LATEST_TAG" ]; then
+  if [ ! -f "/home/$ptb_service_user/.config/ptb-service-version.txt" ] || [ "$(cat /home/"$ptb_service_user"/.config/ptb-service-version.txt)" != "$LATEST_TAG" ]; then
     new_update_flag=" | New update: ${LATEST_TAG}"
   else
     new_update_flag=""
@@ -48,7 +48,7 @@ start_telegram_bot() {
 update_telegram_bot() {
 
   # Check if the latest tag is different from the one stored in the local directory
-  if [ ! -f "/home/\"$ptb_service_user\"/.config/ptb-service-version.txt" ] || [ "$(cat "$HOME"/.config/ptb-service-version.txt)" != "$LATEST_TAG" ]; then
+  if [ ! -f "/home/$ptb_service_user/.config/ptb-service-version.txt" ] || [ "$(cat /home/"$ptb_service_user"/.config/ptb-service-version.txt)" != "$LATEST_TAG" ]; then
     # backup current release ID notes for trackers in update hooks
     sudo -u $ptb_service_user cp release-id.txt ~/.release-id.old
 
@@ -92,6 +92,12 @@ create_ssh_user() {
   echo "$username hard maxlogins $max_sessions" | sudo tee -a /etc/security/limits.conf >/dev/null
 }
 
+change_timezone() {
+  dpkg-reconfigure tzdata
+  timedatectl set-ntp true
+  systemctl enable --now systemd-timesyncd.service
+}
+
 show_menu() {
 
   while true; do
@@ -108,7 +114,8 @@ show_menu() {
     echo "1. $ptb_action Telegram bot"
     echo "2. Update Telegram bot${new_update_flag}"
     echo "3. Create SSH User"
-    echo "4. Exit"
+    echo "4. Change server timezone"
+    echo "5. Exit"
     echo "----------------------------------"
     echo "Enter a number:"
     read -r choice
@@ -116,7 +123,8 @@ show_menu() {
     1) start_telegram_bot ;;
     2) update_telegram_bot ;;
     3) create_ssh_user ;;
-    4) break ;;
+    4) change_timezone ;;
+    5) break ;;
     *) echo "Invalid option, please choose again." ;;
     esac
   done

@@ -260,7 +260,7 @@ async def user_create_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     command_name = '/create_user'
 
     if await assert_can_run_command(command_name, user_id, context):
-        await update.message.reply_text('Enter the username you want to create')
+        await update.message.reply_text('Enter the username you want to create [or /cancel]')
         return USERNAME
     else:
         return ConversationHandler.END
@@ -269,14 +269,14 @@ async def user_create_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def user_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user['username'] = update.message.text
     if await user_exist(user):
-        await update.message.reply_text("User already exists, pick a different username")
+        await update.message.reply_text("User already exists, pick a different username [or /cancel]")
         return USERNAME
     elif not re.match(r'^[a-z_][a-z0-9_-]{0,31}$', user['username']):
-        await update.message.reply_text("Invalid username, pick a different username")
+        await update.message.reply_text("Invalid username, pick a different username [or /cancel]")
         return USERNAME
     logger.info(f'username sets to {user["username"]}')
     await update.message.reply_text(
-        f'How many days do you want to keep the user: {user.get("username")}?' + ' [or /skip]')
+        f'How many days do you want to keep the user: {user.get("username")}?' + ' [or /skip /cancel]')
     return EXPIRE
 
 
@@ -284,7 +284,7 @@ async def expire(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user['expire'] = update.message.text
     logger.info('user expire sets to {:>8} %s' % user['expire'])
     await update.message.reply_text(
-        'Enter the number of max login sessions for the user: %s' % user['username'] + ' [or /skip]')
+        'Enter the number of max login sessions for the user: %s' % user['username'] + ' [or /skip /cancel]')
     return MAX_LOGINS
 
 
@@ -327,7 +327,7 @@ async def skip_expire(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_expire = update.message.text
     logger.info('user expire sets to {:>8} %s' % user_expire)
     await update.message.reply_text(
-        'Enter the number of max login sessions for the user: %s' % user['username'] + ' [or /skip]')
+        'Enter the number of max login sessions for the user: %s' % user['username'] + ' [or /skip /cancel]')
     return MAX_LOGINS
 
 
