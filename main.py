@@ -92,7 +92,7 @@ async def get_users_list():
         stdout=asyncio.subprocess.PIPE)
     output_bytes, _ = await process.communicate()
 
-    users = [line.decode() for line in output_bytes.splitlines()[1:]]
+    users = [line.decode() for line in output_bytes.splitlines()]
     return users
 
 
