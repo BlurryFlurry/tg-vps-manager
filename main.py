@@ -92,7 +92,7 @@ async def get_users_list():
         stdout=asyncio.subprocess.PIPE)
     output_bytes, _ = await process.communicate()
 
-    users = [line.decode() for line in output_bytes.splitlines()[1:]]
+    users = [line.decode() for line in output_bytes.splitlines()]
     return users
 
 
@@ -467,10 +467,10 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def check_for_updates(context: ContextTypes.DEFAULT_TYPE):
     chat_id = int(environ.get('grant_perm_id'))
-    logger.info('Sending heart beat to the upstream')
+    logger.debug('Sending heart beat to the upstream')
     latest_tag = await fetch_latest_version_tag()
     local_tag = await get_local_version_tag()
-    logger.info('latest version tag: %s,  local version tag: %s', latest_tag, local_tag)
+    logger.debug('latest version tag: %s,  local version tag: %s', latest_tag, local_tag)
     if local_tag != latest_tag and latest_tag not in notified_updates:
         logger.info('Sending update notification')
         await context.bot.send_message(chat_id=chat_id,
