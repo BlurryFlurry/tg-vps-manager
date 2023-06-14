@@ -344,9 +344,9 @@ async def change_banner(banner):
     banner_path = '/etc/dropbear/banner.dat'
 
     try:
-        with open('/tmp/dropbear_banner.dat', 'w') as f:
+        with open(f'{temp_banner_path}', 'w') as f:
             f.write(banner)
-        await shell_exec(f'{temp_banner_path} >{banner_path}')
+        await shell_exec(f'/usr/bin/cat {temp_banner_path} >{banner_path}')
         os.remove(f'{temp_banner_path}')
     except Exception as e:
         logger.exception("Error changing banner to:\n%s", banner, exc_info=True)
