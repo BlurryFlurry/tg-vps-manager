@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import random
-import shutil
 import string
 from logging import Logger
 from logging.handlers import RotatingFileHandler
@@ -342,9 +341,9 @@ async def change_banner(banner):
     logger.info('Setting new banner...')
     events.banner_change_before(banner)
     try:
-        with open('/tmp/dropbear_banner.dat', 'r+') as f:
+        with open('/tmp/dropbear_banner.dat', 'w') as f:
             f.write(banner)
-        shutil.move('/tmp/dropbear_banner.dat', '/etc/dropbear/dropbear_banner.dat')
+        os.replace('/tmp/dropbear_banner.dat', '/etc/dropbear/banner.dat')
     except Exception as e:
         logger.exception("Error changing banner to:\n%s", banner, exc_info=True)
         logger.error(e)
