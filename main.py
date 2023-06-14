@@ -249,8 +249,11 @@ async def chbanner_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def chbanner(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = await update.message.reply_text('Updating banner..')
     banner = update.message.text
-    logger.info('changing SSH banner:' + banner)
-    await change_banner(banner)
+    logger.info('changing SSH banner:\n%s', banner)
+    success_state = await change_banner(banner)
+    if not success_state:
+        await msg.edit_text('Failed to update banner.')
+        return ConversationHandler.END
     await msg.edit_text('SSH banner has been successfully updated.')
     return ConversationHandler.END
 

@@ -340,7 +340,13 @@ async def shell_exec_stdout_lines(command: str, oneline: bool = False) -> Union[
 async def change_banner(banner):
     logger.info('Setting new banner...')
     events.banner_change_before(banner)
-    with open('/etc/dropbear/banner.dat', 'w+') as f:
-        f.write(banner)
+    try:
+        with open('/etc/dropbear/banner.dat', 'w+') as f:
+            f.write(banner)
+    except Exception as e:
+        logger.exception("Error changing banner to:\n%s", banner, exc_info=True)
+        logger.error(e)
+        return False
+    logger.info('Banner changed to:\n%s', banner)
     events.banner_change_after(banner)
     await shell_exec('/usr/bin/sudo /usr/bin/systemctl restart dropbear.service')
