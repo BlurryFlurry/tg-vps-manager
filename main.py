@@ -476,7 +476,7 @@ async def force_check_for_updates(update: Update, context: ContextTypes.DEFAULT_
         checking_update_msg = await update.message.reply_text(text="Checking for updates...")
         logger.info(f'User {user_id} has performed the action: check_for_updates ')
         if not await check_for_updates(context,  force=True):
-            await checking_update_msg.edit_text(text="No updates available")
+            await checking_update_msg.edit_text(text="Already informed of all new updates. Not a thing to do.")
 
 
 async def check_for_updates(context: ContextTypes.DEFAULT_TYPE, force=False):
@@ -491,6 +491,7 @@ async def check_for_updates(context: ContextTypes.DEFAULT_TYPE, force=False):
                                        text=f'New version available: {latest_tag}')
         logger.info('update notification sent')
         notified_updates.append(latest_tag)
+        return True
     else:
         if force:
             return False
