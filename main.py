@@ -29,15 +29,15 @@ notified_updates = []
 
 
 async def assert_can_run_command(command_name: str, user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
-    fullname = context.user_data.get('fullname')
+    fullname = context.bot.get_chat(user_id).full_name
     c.execute('SELECT can_access FROM command_permissions WHERE user_id = ? AND command_name = ?',
               (user_id, command_name))
     result = c.fetchone()
     if result and result[0]:
-        logger.info(f'User {fullname} has performed the action: {command_name}')
+        logger.info(f'User {fullname} has granted permission to execute: {command_name}')
         return True
     else:
-        logger.info(f'User {fullname} has failed to execute the action: {command_name}')
+        logger.info(f'User {fullname} has failed to execute: {command_name}')
         await context.bot.send_message(chat_id=user_id, text='You do not have permission to run this command.')
         await context.bot.send_message(chat_id=user_id,
                                        text='''This can happen for a variety of reasons. I am a part of the script named "Dig-my-tunnel" (github.comBlurryFlurry/dig-my-tunnel), which allows server owners to administer their servers using a simple telegram bot like me. \n If you know who owns the server that I manage, he must provide you access to perform the command. And if you don't know who that person is, I apologize; you may be conversing with a private bot controlled by someone. In this circumstance, I am unable to assist you.''')
@@ -116,7 +116,7 @@ async def user_delete(user):
 async def deluser(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     command_name = '/deluser'
-    if await assert_can_run_command(command_name, user_id, context):
+    if await assert_can_run_command(command_name, user_id, context, ):
         args = context.args
         if len(args) == 0:
             await context.bot.send_message(chat_id=update.effective_chat.id,
@@ -479,6 +479,9 @@ async def force_check_for_updates(update: Update, context: ContextTypes.DEFAULT_
         checking_update_msg = await update.message.reply_text(text="Checking for updates...")
         if not await check_for_updates(context, force=True):
             await checking_update_msg.edit_text(text="Already informed of all new updates. Not a thing to do.")
+        else:
+            await checking_update_msg.delete()
+
 
 
 async def check_for_updates(context: ContextTypes.DEFAULT_TYPE, force=False):
