@@ -468,7 +468,16 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                            text='Usage: /vnstat arg [daily | monthly | hourly | top | 5m ]')
 
 
-async def check_for_updates(context: ContextTypes.DEFAULT_TYPE):
+async def force_check_for_updates(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    command_name = '/force_check_for_updates'
+    if await assert_can_run_command(command_name, user_id, context):
+        await update.message.reply_text(text="Checking for updates...")
+        logger.info(f'User {user_id} has performed the action: check_for_updates ')
+        await check_for_updates(context,  force=True)
+
+
+async def check_for_updates(context: ContextTypes.DEFAULT_TYPE, force=False):
     chat_id = int(environ.get('grant_perm_id'))
     logger.debug('Sending heart beat to the upstream')
     latest_tag = await fetch_latest_version_tag()
@@ -480,6 +489,9 @@ async def check_for_updates(context: ContextTypes.DEFAULT_TYPE):
                                        text=f'New version available: {latest_tag}')
         logger.info('update notification sent')
         notified_updates.append(latest_tag)
+    else:
+        if force:
+            await context.bot.send_message(chat_id=chat_id, text='No updates available.')
 
 
 async def reboot(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -558,6 +570,7 @@ if __name__ == '__main__':
     deluser_handler = CommandHandler('deluser', deluser)
     server_stats_handler = CommandHandler('server_stats', server_stats)
     vnstat_handler = CommandHandler('vnstat', vnstat)
+    updatecheck_handler = CommandHandler('force_check_for_updates', force_check_for_updates)
 
     application.add_handlers([
         user_create_conv_handler,
@@ -565,6 +578,7 @@ if __name__ == '__main__':
         vnstat_cfg_handler,
         vnstat_cfg_add_interface_handler,
         server_stats_handler,
+        updatecheck_handler,
         logfile_handler,
         release_handler,
         vnstat_handler,
