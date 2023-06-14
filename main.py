@@ -55,7 +55,8 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                     '/chbanner - update SSH banner\n\n' +
                                     '/server_stats - check server statistics\n' +
                                     '/vnstat - check bandwidth usage\n'
-                                    '/vnstat_cfg - bandwidth monitor configuration\n\n'
+                                    '/vnstat_cfg - bandwidth monitor configuration\n'
+                                    '/force_check_for_updates - Force check for updates\n\n'
                                     '/reboot - restart the server\n\n' +
                                     'Found a bug? Find your /release id and /logfile \n'
                                     'and forward it to <a href="tg://user?id=5870625310">me</a>.\n'
@@ -472,9 +473,10 @@ async def force_check_for_updates(update: Update, context: ContextTypes.DEFAULT_
     user_id = update.effective_user.id
     command_name = '/force_check_for_updates'
     if await assert_can_run_command(command_name, user_id, context):
-        await update.message.reply_text(text="Checking for updates...")
+        checking_update_msg = await update.message.reply_text(text="Checking for updates...")
         logger.info(f'User {user_id} has performed the action: check_for_updates ')
-        await check_for_updates(context,  force=True)
+        if not await check_for_updates(context,  force=True):
+            await checking_update_msg.edit_text(text="No updates available")
 
 
 async def check_for_updates(context: ContextTypes.DEFAULT_TYPE, force=False):
@@ -491,7 +493,7 @@ async def check_for_updates(context: ContextTypes.DEFAULT_TYPE, force=False):
         notified_updates.append(latest_tag)
     else:
         if force:
-            await context.bot.send_message(chat_id=chat_id, text='No updates available.')
+            return False
 
 
 async def reboot(update: Update, context: ContextTypes.DEFAULT_TYPE):
