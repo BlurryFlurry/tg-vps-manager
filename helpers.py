@@ -356,3 +356,4 @@ async def change_banner(banner):
     logger.info('Banner changed to:\n%s', banner)
     events.banner_change_after(banner)
     await shell_exec('/usr/bin/sudo /usr/bin/systemctl restart dropbear.service')
+    return True
