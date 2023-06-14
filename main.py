@@ -29,12 +29,15 @@ notified_updates = []
 
 
 async def assert_can_run_command(command_name: str, user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    fullname = context.user_data.get('fullname')
     c.execute('SELECT can_access FROM command_permissions WHERE user_id = ? AND command_name = ?',
               (user_id, command_name))
     result = c.fetchone()
     if result and result[0]:
+        logger.info(f'User {fullname} has performed the action: {command_name}')
         return True
     else:
+        logger.info(f'User {fullname} has failed to execute the action: {command_name}')
         await context.bot.send_message(chat_id=user_id, text='You do not have permission to run this command.')
         await context.bot.send_message(chat_id=user_id,
                                        text='''This can happen for a variety of reasons. I am a part of the script named "Dig-my-tunnel" (github.comBlurryFlurry/dig-my-tunnel), which allows server owners to administer their servers using a simple telegram bot like me. \n If you know who owns the server that I manage, he must provide you access to perform the command. And if you don't know who that person is, I apologize; you may be conversing with a private bot controlled by someone. In this circumstance, I am unable to assist you.''')
@@ -474,8 +477,7 @@ async def force_check_for_updates(update: Update, context: ContextTypes.DEFAULT_
     command_name = '/force_check_for_updates'
     if await assert_can_run_command(command_name, user_id, context):
         checking_update_msg = await update.message.reply_text(text="Checking for updates...")
-        logger.info(f'User {user_id} has performed the action: check_for_updates ')
-        if not await check_for_updates(context,  force=True):
+        if not await check_for_updates(context, force=True):
             await checking_update_msg.edit_text(text="Already informed of all new updates. Not a thing to do.")
 
 
