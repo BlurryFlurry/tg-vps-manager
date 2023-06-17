@@ -29,7 +29,8 @@ notified_updates = []
 
 
 async def assert_can_run_command(command_name: str, user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
-    fullname = context.bot.get_chat(user_id).full_name
+    chat = await context.bot.get_chat(user_id)
+    fullname = chat.full_name
     c.execute('SELECT can_access FROM command_permissions WHERE user_id = ? AND command_name = ?',
               (user_id, command_name))
     result = c.fetchone()
