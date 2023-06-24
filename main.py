@@ -383,6 +383,8 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         server_load = await shell_exec_stdout_lines("/usr/bin/uptime | /usr/bin//awk -F: '{ print $5 }'", True)
         uptime = await shell_exec_stdout_lines('/usr/bin/uptime --pretty', True)
         server_ip = await get_public_ip()
+        top_mem_processes = await fetch_top_memory_processes()
+        top_cpu_processes = await fetch_top_cpu_processes()
         await context.bot.send_message(text=f'''
         <pre>
 ―――⋞ Server statistics ⋟―――
@@ -401,6 +403,13 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 {service_processes}
 ⁅≔――――――――――――≍―――――――――――――≔⁆
+        Top memory processes
+
+{top_mem_processes}
+⁅≔――――――――――――≍―――――――――――――≔⁆
+        Top CPU processes
+        
+{top_cpu_processes}
 
 </pre>
                                                                     <a href="https://github.com/BlurryFlurry/dig-my-tunnel">❬../❭</a> ''',
