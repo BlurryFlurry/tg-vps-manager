@@ -365,6 +365,13 @@ async def skip_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
+def setup_output_lines_for_render(lines):
+    output = str()
+    for line in lines:
+        output += html.escape(line) + '\n'
+    return output
+
+
 async def get_service_processes():
     processes = await shell_exec_stdout_lines(
         """/usr/bin/sudo /usr/bin/ss -ntlp | /usr/bin/awk '!/Peer/ {split($4, a, ":"); sub("users:", "", $6); gsub(",", " | ", $6); gsub("\\)\\)", "", $6); gsub("\\\(\\\(", "", $6); print "Port:" a[length(a)] " | " $6 }'""")
@@ -377,14 +384,12 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     command_name = '/server_stats'
     if await assert_can_run_command(command_name, user_id, context):
         service_processes_list = await get_service_processes()
-        service_processes = str()
-        for line in service_processes_list:
-            service_processes += html.escape(line) + '\n'
+        service_processes = setup_output_lines_for_render(service_processes_list)
         server_load = await shell_exec_stdout_lines("/usr/bin/uptime | /usr/bin//awk -F: '{ print $5 }'", True)
         uptime = await shell_exec_stdout_lines('/usr/bin/uptime --pretty', True)
         server_ip = await get_public_ip()
-        top_mem_processes = await fetch_top_memory_processes()
-        top_cpu_processes = await fetch_top_cpu_processes()
+        top_mem_processes = setup_output_lines_for_render(await fetch_top_memory_processes())
+        top_cpu_processes = setup_output_lines_for_render(await fetch_top_cpu_processes())
         await context.bot.send_message(text=f'''
         <pre>
 ―――⋞ Server statistics ⋟―――
@@ -488,8 +493,8 @@ async def fetch_top_cpu_processes():
     returns top 10 processes sorted by cpu usage
     :return: string
     """
-    command = '/usr/bin/ps -eo pid,ppid,cmd,comm,%mem,%cpu --sort=-%cpu | head -11'
-    output = await shell_exec_stdout_lines(command, True)
+    command = '/usr/bin/ps -eo pid,ppid,comm,%mem,%cpu --sort=-%cpu | head -11 | tail -10'
+    output = await shell_exec_stdout_lines(command)
     return output
 
 
@@ -501,8 +506,8 @@ async def fetch_top_memory_processes():
     returns top 10 processes sorted by memory usage
     :return: string
     """
-    command = '/usr/bin/ps -eo pid,ppid,cmd,comm,%mem,%cpu --sort=-%mem | head -11'
-    output = await shell_exec_stdout_lines(command, True)
+    command = '/usr/bin/ps -eo pid,ppid,comm,%mem,%cpu --sort=-%mem | head -11 | tail -10'
+    output = await shell_exec_stdout_lines(command)
     return output
 
 
