@@ -493,7 +493,7 @@ async def fetch_top_cpu_processes():
     returns top 10 processes sorted by cpu usage
     :return: string
     """
-    command = '/usr/bin/ps -eo pid,ppid,comm,%mem,%cpu --sort=-%cpu | head -11 | tail -10'
+    command = '/usr/bin/ps -eo pid,ppid,comm,%mem,%cpu --sort=-%cpu | /usr/bin/head -11 | /usr/bin/tail -10'
     output = await shell_exec_stdout_lines(command)
     return output
 
@@ -506,7 +506,7 @@ async def fetch_top_memory_processes():
     returns top 10 processes sorted by memory usage
     :return: string
     """
-    command = '/usr/bin/ps -eo pid,ppid,comm,%mem,%cpu --sort=-%mem | head -11 | tail -10'
+    command = '/usr/bin/ps -eo pid,ppid,comm,%mem,%cpu --sort=-%mem | /usr/bin/head -11 | /usr/bin/tail -10'
     output = await shell_exec_stdout_lines(command)
     return output
 
