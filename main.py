@@ -542,7 +542,7 @@ async def grant(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 if __name__ == '__main__':
-    application = ApplicationBuilder().token(environ.get('telegram_bot_token')).build()
+    application = ApplicationBuilder().token(environ.get('telegram_bot_token')).read_timeout(30).write_timeout(30).build()
 
     start_handler = CommandHandler('start', start)
 
