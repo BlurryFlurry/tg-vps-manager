@@ -365,6 +365,13 @@ async def skip_max_logins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
+def setup_output_lines_for_render(lines):
+    output = str()
+    for line in lines:
+        output += html.escape(line) + '\n'
+    return output
+
+
 async def get_service_processes():
     processes = await shell_exec_stdout_lines(
         """/usr/bin/sudo /usr/bin/ss -ntlp | /usr/bin/awk '!/Peer/ {split($4, a, ":"); sub("users:", "", $6); gsub(",", " | ", $6); gsub("\\)\\)", "", $6); gsub("\\\(\\\(", "", $6); print "Port:" a[length(a)] " | " $6 }'""")
@@ -377,12 +384,12 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     command_name = '/server_stats'
     if await assert_can_run_command(command_name, user_id, context):
         service_processes_list = await get_service_processes()
-        service_processes = str()
-        for line in service_processes_list:
-            service_processes += html.escape(line) + '\n'
+        service_processes = setup_output_lines_for_render(service_processes_list)
         server_load = await shell_exec_stdout_lines("/usr/bin/uptime | /usr/bin//awk -F: '{ print $5 }'", True)
         uptime = await shell_exec_stdout_lines('/usr/bin/uptime --pretty', True)
         server_ip = await get_public_ip()
+        top_mem_processes = setup_output_lines_for_render(await fetch_top_memory_processes())
+        top_cpu_processes = setup_output_lines_for_render(await fetch_top_cpu_processes())
         await context.bot.send_message(text=f'''
         <pre>
 ―――⋞ Server statistics ⋟―――
@@ -401,6 +408,13 @@ async def server_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 {service_processes}
 ⁅≔――――――――――――≍―――――――――――――≔⁆
+        Top memory processes
+
+{top_mem_processes}
+⁅≔――――――――――――≍―――――――――――――≔⁆
+        Top CPU processes
+        
+{top_cpu_processes}
 
 </pre>
                                                                     <a href="https://github.com/BlurryFlurry/dig-my-tunnel">❬../❭</a> ''',
@@ -473,6 +487,30 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                            text='Usage: /vnstat arg [daily | monthly | hourly | top | 5m ]')
 
 
+# function to fetch top 10 processes sorted by cpu usage
+async def fetch_top_cpu_processes():
+    """
+    returns top 10 processes sorted by cpu usage
+    :return: string
+    """
+    command = '/usr/bin/ps -eo pid,ppid,comm,%mem,%cpu --sort=-%cpu | /usr/bin/head -11 | /usr/bin/tail -10'
+    output = await shell_exec_stdout_lines(command)
+    return output
+
+
+# function to fetch top 10 processes sorted by memory usage
+
+
+async def fetch_top_memory_processes():
+    """
+    returns top 10 processes sorted by memory usage
+    :return: string
+    """
+    command = '/usr/bin/ps -eo pid,ppid,comm,%mem,%cpu --sort=-%mem | /usr/bin/head -11 | /usr/bin/tail -10'
+    output = await shell_exec_stdout_lines(command)
+    return output
+
+
 async def force_check_for_updates(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     command_name = '/force_check_for_updates'
@@ -482,7 +520,6 @@ async def force_check_for_updates(update: Update, context: ContextTypes.DEFAULT_
             await checking_update_msg.edit_text(text="Already informed of all new updates. Not a thing to do.")
         else:
             await checking_update_msg.delete()
-
 
 
 async def check_for_updates(context: ContextTypes.DEFAULT_TYPE, force=False):
@@ -542,7 +579,8 @@ async def grant(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 if __name__ == '__main__':
-    application = ApplicationBuilder().token(environ.get('telegram_bot_token')).build()
+    application = ApplicationBuilder().token(environ.get('telegram_bot_token')).read_timeout(30).write_timeout(
+        30).build()
 
     start_handler = CommandHandler('start', start)
 
