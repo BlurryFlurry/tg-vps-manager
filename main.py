@@ -473,6 +473,30 @@ async def vnstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                            text='Usage: /vnstat arg [daily | monthly | hourly | top | 5m ]')
 
 
+# function to fetch top 10 processes sorted by cpu usage
+async def fetch_top_cpu_processes():
+    """
+    returns top 10 processes sorted by cpu usage
+    :return: string
+    """
+    command = '/usr/bin/ps -eo pid,ppid,cmd,comm,%mem,%cpu --sort=-%cpu | head -11'
+    output = await shell_exec_stdout_lines(command, True)
+    return output
+
+
+# function to fetch top 10 processes sorted by memory usage
+
+
+async def fetch_top_memory_processes():
+    """
+    returns top 10 processes sorted by memory usage
+    :return: string
+    """
+    command = '/usr/bin/ps -eo pid,ppid,cmd,comm,%mem,%cpu --sort=-%mem | head -11'
+    output = await shell_exec_stdout_lines(command, True)
+    return output
+
+
 async def force_check_for_updates(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     command_name = '/force_check_for_updates'
@@ -482,7 +506,6 @@ async def force_check_for_updates(update: Update, context: ContextTypes.DEFAULT_
             await checking_update_msg.edit_text(text="Already informed of all new updates. Not a thing to do.")
         else:
             await checking_update_msg.delete()
-
 
 
 async def check_for_updates(context: ContextTypes.DEFAULT_TYPE, force=False):
@@ -542,7 +565,8 @@ async def grant(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 if __name__ == '__main__':
-    application = ApplicationBuilder().token(environ.get('telegram_bot_token')).read_timeout(30).write_timeout(30).build()
+    application = ApplicationBuilder().token(environ.get('telegram_bot_token')).read_timeout(30).write_timeout(
+        30).build()
 
     start_handler = CommandHandler('start', start)
 
