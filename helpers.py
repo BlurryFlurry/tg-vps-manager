@@ -18,7 +18,8 @@ logger: Logger = logging.getLogger(__name__)
 logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s] [%(name)s]  %(message)s")
 logger.setLevel(logging.INFO)
 
-fileHandler = RotatingFileHandler('/var/log/ptb.log', mode='a', maxBytes=5 * 1024 * 1024, backupCount=2, encoding=None)
+logfile_path = f'/var/log/{os.getlogin()}.log'
+fileHandler = RotatingFileHandler(logfile_path, mode='a', maxBytes=5 * 1024 * 1024, backupCount=2, encoding=None)
 fileHandler.setFormatter(logFormatter)
 logger.addHandler(fileHandler)
 

@@ -311,7 +311,7 @@ async def release(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def logfile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    logfile_path = f'/var/log/{getlogin()}.log'
+    from helpers import logfile_path
     if user_id == int(environ.get('grant_perm_id')):  # shows debug info only to the admin
         args = context.args
         if len(args) == 0:
