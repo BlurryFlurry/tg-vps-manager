@@ -7,6 +7,7 @@ from helpers import logger, shell_exec, change_banner, shell_exec_stdout_lines, 
 import re
 import sqlite3
 from os import environ
+from os import getlogin
 from helpers import get_random_password
 from helpers import format_bandwidth_usage
 from helpers import events, fetch_latest_version_tag, get_local_version_tag
@@ -310,14 +311,15 @@ async def release(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def logfile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    logfile_path = f'/var/log/{getlogin()}.log'
     if user_id == int(environ.get('grant_perm_id')):  # shows debug info only to the admin
         args = context.args
         if len(args) == 0:
-            with open('/var/log/ptb.log', 'rb') as f:
+            with open(logfile_path, 'rb') as f:
                 await update.message.chat.send_document(f)
         else:
             if args[0].lower() == 'clear':
-                open('/var/log/ptb.log', 'w+').close()
+                open(logfile_path, 'w+').close()
                 await update.message.reply_text('Log file cleared')
             elif args[0].lower() == 'debug':
                 logger.setLevel(logging.DEBUG)
