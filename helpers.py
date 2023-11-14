@@ -9,6 +9,7 @@ from typing import Union
 from events import Events
 import aiohttp
 import os
+import getpass
 
 events = Events()
 
@@ -18,7 +19,7 @@ logger: Logger = logging.getLogger(__name__)
 logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s] [%(name)s]  %(message)s")
 logger.setLevel(logging.INFO)
 
-logfile_path = f'/var/log/{os.getlogin()}.log'
+logfile_path = f'/var/log/{getpass.getuser()}.log'
 fileHandler = RotatingFileHandler(logfile_path, mode='a', maxBytes=5 * 1024 * 1024, backupCount=2, encoding=None)
 fileHandler.setFormatter(logFormatter)
 logger.addHandler(fileHandler)
